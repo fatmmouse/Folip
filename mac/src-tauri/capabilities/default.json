@@ -1,0 +1,15 @@
+{
+  "identifier": "default",
+  "description": "Default capabilities for Folip",
+  "windows": ["main", "login"],
+  "permissions": [
+    "core:default",
+    "positioner:default",
+    "dialog:default",
+    "fs:default",
+    {
+      "identifier": "fs:allow-download-write",
+      "allow": [{ "path": "$DOWNLOAD/**" }]
+    }
+  ]
+}

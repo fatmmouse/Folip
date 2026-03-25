@@ -1,0 +1,26 @@
+[package]
+name = "folip-mac"
+version = "0.1.0"
+description = "Folip - File delivery for your devices"
+authors = ["you"]
+edition = "2021"
+
+[lib]
+name = "folip_mac_lib"
+crate-type = ["lib", "cdylib", "staticlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["tray-icon"] }
+tauri-plugin-positioner = { version = "2", features = ["tray-icon"] }
+tauri-plugin-dialog = "2"
+tauri-plugin-fs = "2"
+reqwest = { version = "0.12", features = ["stream", "json"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["fs"] }
+keyring = { version = "3", features = ["apple-native"] }
+hostname = "0.4"
+bytes = "1"
