@@ -7,23 +7,27 @@ use tauri::{
 };
 use tauri_plugin_positioner::{WindowExt, Position};
 
+mod credentials;
+mod api_client;
+
 /// Shared state to track whether an upload is in progress.
 /// When uploading, the panel should NOT auto-hide on blur (per D-02).
 pub struct UploadState {
-    pub is_uploading: AtomicBool,
+    pub is_uploading: Arc<AtomicBool>,
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    let upload_state = Arc::new(UploadState {
-        is_uploading: AtomicBool::new(false),
-    });
+    let upload_state = UploadState {
+        is_uploading: Arc::new(AtomicBool::new(false)),
+    };
 
     tauri::Builder::default()
         .plugin(tauri_plugin_positioner::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
-        .manage(upload_state.clone())
+        .manage(api_client::ApiClient::new())
+        .manage(upload_state)
         .setup(move |app| {
             // D-01: Hide Dock icon — app runs as menu bar utility only
             #[cfg(target_os = "macos")]
@@ -67,7 +71,7 @@ pub fn run() {
             // Exception: do NOT hide if upload is in progress
             if let WindowEvent::Focused(false) = event {
                 if window.label() == "main" {
-                    let state = window.state::<Arc<UploadState>>();
+                    let state = window.state::<UploadState>();
                     if !state.is_uploading.load(Ordering::Relaxed) {
                         let _ = window.hide();
                     }
