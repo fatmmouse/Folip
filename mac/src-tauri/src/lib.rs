@@ -9,6 +9,7 @@ use tauri_plugin_positioner::{WindowExt, Position};
 
 mod credentials;
 mod api_client;
+mod commands;
 
 /// Shared state to track whether an upload is in progress.
 /// When uploading, the panel should NOT auto-hide on blur (per D-02).
@@ -78,7 +79,20 @@ pub fn run() {
                 }
             }
         })
-        .invoke_handler(tauri::generate_handler![])
+        .invoke_handler(tauri::generate_handler![
+            commands::auth::login,
+            commands::auth::register,
+            commands::auth::logout,
+            commands::auth::check_auth,
+            commands::auth::refresh_tokens,
+            commands::devices::get_devices,
+            commands::devices::remove_device,
+            commands::transfer::prepare_upload,
+            commands::transfer::upload_file,
+            commands::inbox::get_inbox,
+            commands::inbox::download_file,
+            commands::inbox::redownload_file,
+        ])
         .run(tauri::generate_context!())
         .expect("error while running Folip");
 }
