@@ -15,7 +15,7 @@ await build({
   target: 'node20',
   format: 'cjs',
   sourcemap: true,
-  external: [],
+  external: ['proxy-agent'],
 })
 
 console.log('Build complete: dist/index.js')
