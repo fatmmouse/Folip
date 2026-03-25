@@ -17,6 +17,36 @@ pub struct UploadState {
     pub is_uploading: Arc<AtomicBool>,
 }
 
+/// Show main panel and hide login window (called after successful auth).
+#[tauri::command]
+async fn show_main_hide_login(app: tauri::AppHandle) -> Result<(), String> {
+    if let Some(login_win) = app.get_webview_window("login") {
+        let _ = login_win.hide();
+    }
+    // Main window is shown via tray click; just ensure it's ready
+    // The tray click handler will show the main window when clicked
+    Ok(())
+}
+
+/// Show the login window (called when auth check fails or session expires).
+#[tauri::command]
+async fn show_login(app: tauri::AppHandle) -> Result<(), String> {
+    if let Some(login_win) = app.get_webview_window("login") {
+        let _ = login_win.show();
+        let _ = login_win.set_focus();
+    }
+    Ok(())
+}
+
+/// Update tray icon badge based on pending inbox count.
+#[tauri::command]
+async fn update_tray_badge(_has_pending: bool) -> Result<(), String> {
+    // TODO: Update tray icon to show/hide red dot badge
+    // For now this is a no-op placeholder — proper icon badge
+    // requires generating a modified icon at runtime
+    Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let upload_state = UploadState {
@@ -33,6 +63,15 @@ pub fn run() {
             // D-01: Hide Dock icon — app runs as menu bar utility only
             #[cfg(target_os = "macos")]
             app.set_activation_policy(tauri::ActivationPolicy::Accessory);
+
+            // Check auth state on startup: if no tokens, show login window
+            let has_tokens = credentials::get_access_token().is_ok();
+            if !has_tokens {
+                if let Some(login_win) = app.get_webview_window("login") {
+                    let _ = login_win.show();
+                    let _ = login_win.set_focus();
+                }
+            }
 
             // Create tray icon in synchronous .setup() context
             // CRITICAL: Do NOT create TrayIcon in async context (Pitfall 2)
@@ -70,6 +109,7 @@ pub fn run() {
         .on_window_event(move |window, event| {
             // D-02: Click outside panel to auto-dismiss
             // Exception: do NOT hide if upload is in progress
+            // Only auto-dismiss the main panel, not the login window
             if let WindowEvent::Focused(false) = event {
                 if window.label() == "main" {
                     let state = window.state::<UploadState>();
@@ -80,6 +120,9 @@ pub fn run() {
             }
         })
         .invoke_handler(tauri::generate_handler![
+            show_main_hide_login,
+            show_login,
+            update_tray_badge,
             commands::auth::login,
             commands::auth::register,
             commands::auth::logout,

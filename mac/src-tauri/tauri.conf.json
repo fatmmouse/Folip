@@ -23,6 +23,18 @@
         "alwaysOnTop": true,
         "skipTaskbar": true,
         "focus": false
+      },
+      {
+        "label": "login",
+        "title": "Folip - Login",
+        "url": "/login",
+        "width": 480,
+        "height": 360,
+        "decorations": false,
+        "visible": false,
+        "resizable": false,
+        "center": true,
+        "focus": true
       }
     ]
   }
