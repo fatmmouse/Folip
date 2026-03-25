@@ -1,0 +1,30 @@
+{
+  "name": "folip-api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "deploy": "npm run build && s deploy -y",
+    "dev": "npx tsx watch src/index.ts"
+  },
+  "dependencies": {
+    "express": "^5.2.1",
+    "ali-oss": "^6.23.0",
+    "tablestore": "^5.6.3",
+    "jsonwebtoken": "^9.0.3",
+    "bcryptjs": "^3.0.3",
+    "uuid": "^10.0.0",
+    "dotenv": "^16.4.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0",
+    "@types/node": "^20.0.0",
+    "@types/express": "^5.0.6",
+    "@types/jsonwebtoken": "^9.0.0",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/uuid": "^10.0.0",
+    "esbuild": "^0.24.0",
+    "tsx": "^4.0.0"
+  }
+}
