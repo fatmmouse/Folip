@@ -39,11 +39,29 @@ async fn show_login(app: tauri::AppHandle) -> Result<(), String> {
 }
 
 /// Update tray icon badge based on pending inbox count.
+/// Swaps tray icon between normal and badge (red dot) versions.
 #[tauri::command]
-async fn update_tray_badge(_has_pending: bool) -> Result<(), String> {
-    // TODO: Update tray icon to show/hide red dot badge
-    // For now this is a no-op placeholder — proper icon badge
-    // requires generating a modified icon at runtime
+async fn update_tray_badge(app: tauri::AppHandle, has_pending: bool) -> Result<(), String> {
+    use tauri::image::Image;
+    use tauri::tray::TrayIconId;
+
+    let icon_bytes: &[u8] = if has_pending {
+        include_bytes!("../icons/tray-icon-badge.png")
+    } else {
+        include_bytes!("../icons/tray-icon.png")
+    };
+
+    let icon = Image::from_bytes(icon_bytes).map_err(|e| format!("Failed to load tray icon: {e}"))?.to_owned();
+
+    if let Some(tray) = app.tray_by_id(&TrayIconId::new("main")) {
+        tray.set_icon(Some(icon)).map_err(|e| format!("Failed to set tray icon: {e}"))?;
+    } else {
+        // Try default tray icon (unnamed trays get auto-generated IDs)
+        // Fall back to iterating — but Tauri v2 doesn't expose tray list.
+        // The tray was built without explicit ID, so we can't reliably find it.
+        // This is acceptable — the badge is a nice-to-have visual indicator.
+    }
+
     Ok(())
 }
 
@@ -75,7 +93,7 @@ pub fn run() {
 
             // Create tray icon in synchronous .setup() context
             // CRITICAL: Do NOT create TrayIcon in async context (Pitfall 2)
-            let _tray = TrayIconBuilder::new()
+            let _tray = TrayIconBuilder::with_id("main")
                 .icon(app.default_window_icon().unwrap().clone())
                 .show_menu_on_left_click(false) // CRITICAL: macOS bug workaround (Pitfall 1)
                 .on_tray_icon_event(|tray_handle, event| {
