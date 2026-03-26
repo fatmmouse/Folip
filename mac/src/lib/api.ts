@@ -48,6 +48,6 @@ export async function downloadFile(downloadUrl: string, fileName: string, transf
   return invoke<string>('download_file', { downloadUrl, fileName, transferId });
 }
 
-export async function redownloadFile(downloadUrl: string, fileName: string) {
-  return invoke<string>('redownload_file', { downloadUrl, fileName });
+export async function redownloadFile(downloadUrl: string, fileName: string, transferId: string) {
+  return invoke<string>('redownload_file', { downloadUrl, fileName, transferId });
 }
