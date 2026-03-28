@@ -1,0 +1,35 @@
+edition: 3.0.0
+name: folip-api
+access: 'default'
+vars:
+  region: 'cn-hangzhou'
+resources:
+  folip-api:
+    component: fc3
+    props:
+      region: ${vars.region}
+      functionName: 'folip-api'
+      description: 'Folip backend API'
+      runtime: 'nodejs20'
+      code: ./dist
+      handler: index.handler
+      memorySize: 512
+      timeout: 60
+      environmentVariables:
+        OSS_ACCESS_KEY_ID: '<from .env.prod>'
+        OSS_ACCESS_KEY_SECRET: '<from .env.prod>'
+        OSS_BUCKET: '<from .env.prod>'
+        OSS_REGION: '<from .env.prod>'
+        OSS_CUSTOM_DOMAIN: ''
+        TABLESTORE_ENDPOINT: '<from .env.prod>'
+        TABLESTORE_INSTANCE: '<from .env.prod>'
+        OTS_ACCESS_KEY_ID: '<from .env.prod>'
+        OTS_ACCESS_KEY_SECRET: '<from .env.prod>'
+        JWT_ACCESS_SECRET: '<from .env.prod>'
+        JWT_REFRESH_SECRET: '<from .env.prod>'
+      triggers:
+        - triggerName: httpTrigger
+          triggerType: http
+          triggerConfig:
+            authType: anonymous
+            methods: ['GET', 'POST', 'PUT', 'DELETE']

@@ -15,7 +15,25 @@ await build({
   target: 'node20',
   format: 'cjs',
   sourcemap: true,
-  external: ['proxy-agent'],
+  // TableStore SDK uses undeclared loop vars (e.g. `for (key in obj)`)
+  // which become ReferenceErrors when esbuild wraps modules in strict scope
+  banner: { js: 'var key, item, condition;' },
+  external: [],
+  plugins: [{
+    name: 'ignore-proxy-agent',
+    setup(build) {
+      // proxy-agent is optional (only used when HTTP_PROXY is set)
+      // Return empty module to avoid missing dependency in FC runtime
+      build.onResolve({ filter: /^proxy-agent$/ }, () => ({
+        path: 'proxy-agent',
+        namespace: 'proxy-agent-stub',
+      }))
+      build.onLoad({ filter: /.*/, namespace: 'proxy-agent-stub' }, () => ({
+        contents: 'module.exports = class ProxyAgent {}',
+        loader: 'js',
+      }))
+    },
+  }],
 })
 
 console.log('Build complete: dist/index.js')
