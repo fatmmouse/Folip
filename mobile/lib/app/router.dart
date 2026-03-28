@@ -8,6 +8,7 @@ import '../features/auth/presentation/register_screen.dart';
 import '../features/inbox/presentation/history_screen.dart';
 import '../features/inbox/presentation/inbox_screen.dart';
 import '../features/send/presentation/send_screen.dart';
+import '../features/settings/presentation/settings_screen.dart';
 import '../features/shell/app_shell.dart';
 
 // ---------------------------------------------------------------------------
@@ -35,17 +36,6 @@ class _DeviceSetupPlaceholder extends StatelessWidget {
   Widget build(BuildContext context) {
     return const Scaffold(
       body: Center(child: Text('Device Setup — coming in Plan 02')),
-    );
-  }
-}
-
-class _SettingsPlaceholder extends StatelessWidget {
-  const _SettingsPlaceholder();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(child: Text('Settings — coming in Plan 05')),
     );
   }
 }
@@ -134,7 +124,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       // Declared at top level so it can be navigated to from any branch
       GoRoute(
         path: AppRoutes.settings,
-        builder: (context, state) => const _SettingsPlaceholder(),
+        builder: (context, state) => const SettingsScreen(),
       ),
 
       // Authenticated: bottom tab shell with two branches
@@ -158,7 +148,7 @@ final routerProvider = Provider<GoRouter>((ref) {
                   // /settings accessible from inbox AppBar gear icon
                   GoRoute(
                     path: 'settings',
-                    builder: (context, state) => const _SettingsPlaceholder(),
+                    builder: (context, state) => const SettingsScreen(),
                   ),
                 ],
               ),
@@ -175,7 +165,7 @@ final routerProvider = Provider<GoRouter>((ref) {
                   // /settings accessible from send AppBar gear icon
                   GoRoute(
                     path: 'settings',
-                    builder: (context, state) => const _SettingsPlaceholder(),
+                    builder: (context, state) => const SettingsScreen(),
                   ),
                 ],
               ),

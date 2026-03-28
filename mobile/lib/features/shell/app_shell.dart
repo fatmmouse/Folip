@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../app/theme.dart';
+import '../../shared/widgets/offline_banner.dart';
 import '../inbox/domain/inbox_notifier.dart';
 
 /// Bottom tab bar shell for authenticated screens.
@@ -12,6 +13,7 @@ import '../inbox/domain/inbox_notifier.dart';
 ///
 /// Per UI-SPEC Navigation Structure: tab bar background #E8E6DC,
 /// active color #D97757, inactive #B0AEA5.
+/// Includes OfflineBanner (D-21) shown below AppBar when connectivity is lost.
 class AppShell extends ConsumerWidget {
   final StatefulNavigationShell navigationShell;
 
@@ -22,7 +24,12 @@ class AppShell extends ConsumerWidget {
     final pendingCount = ref.watch(pendingCountProvider);
 
     return Scaffold(
-      body: navigationShell,
+      body: Column(
+        children: [
+          const OfflineBanner(),
+          Expanded(child: navigationShell),
+        ],
+      ),
       bottomNavigationBar: NavigationBar(
         backgroundColor: AppColors.secondary,
         selectedIndex: navigationShell.currentIndex,
