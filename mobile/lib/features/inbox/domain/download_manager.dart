@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 
@@ -46,12 +45,7 @@ class DownloadManager extends Notifier<Map<String, DownloadState>> {
 
   /// Starts a download for the given transfer using Dio.
   Future<void> startDownload(Transfer transfer) async {
-    debugPrint('[DownloadManager] startDownload: ${transfer.transferId}');
-    debugPrint('[DownloadManager] url: ${transfer.downloadUrl}');
-    debugPrint('[DownloadManager] fileName: ${transfer.fileName}');
-
     if (transfer.downloadUrl == null) {
-      debugPrint('[DownloadManager] ERROR: downloadUrl is null!');
       state = {
         ...state,
         transfer.transferId: DownloadState(
@@ -85,7 +79,6 @@ class DownloadManager extends Notifier<Map<String, DownloadState>> {
         dir = await getApplicationDocumentsDirectory();
       }
       final savePath = '${dir.path}/${transfer.fileName}';
-      debugPrint('[DownloadManager] savePath: $savePath');
 
       await _downloadDio.download(
         transfer.downloadUrl!,
@@ -104,8 +97,6 @@ class DownloadManager extends Notifier<Map<String, DownloadState>> {
           }
         },
       );
-
-      debugPrint('[DownloadManager] download complete!');
 
       // Best-effort: mark as downloaded on backend
       try {
@@ -127,8 +118,7 @@ class DownloadManager extends Notifier<Map<String, DownloadState>> {
       Future.delayed(const Duration(seconds: 3), () {
         clearCompleted(transfer.transferId);
       });
-    } catch (e) {
-      debugPrint('[DownloadManager] EXCEPTION: $e');
+    } catch (_) {
       state = {
         ...state,
         transfer.transferId: DownloadState(
