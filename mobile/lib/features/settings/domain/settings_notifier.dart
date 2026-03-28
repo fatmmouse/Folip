@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/api/api_client.dart';
@@ -48,8 +49,8 @@ class SettingsState {
 class SettingsNotifier extends Notifier<SettingsState> {
   @override
   SettingsState build() {
-    // Schedule async load after sync build returns
-    _loadDevices();
+    // Schedule async load after sync build returns — must catch errors
+    Future.microtask(() => _loadDevices());
     return const SettingsState(isLoading: true);
   }
 
@@ -59,6 +60,7 @@ class SettingsNotifier extends Notifier<SettingsState> {
   }
 
   Future<void> _loadDevices() async {
+    debugPrint('[Settings] _loadDevices called');
     final apiClient = ref.read(apiClientProvider);
     final storage = ref.read(secureStorageProvider);
 
@@ -66,7 +68,9 @@ class SettingsNotifier extends Notifier<SettingsState> {
 
     try {
       final currentDeviceId = await storage.getDeviceId();
+      debugPrint('[Settings] currentDeviceId: $currentDeviceId');
       final response = await apiClient.listDevices();
+      debugPrint('[Settings] listDevices ok=${response.ok} data=${response.data}');
 
       if (response.ok && response.data != null) {
         state = SettingsState(
@@ -74,13 +78,17 @@ class SettingsNotifier extends Notifier<SettingsState> {
           currentDeviceId: currentDeviceId,
           isLoading: false,
         );
+        debugPrint('[Settings] loaded ${response.data!.length} devices');
       } else {
+        debugPrint('[Settings] API error: ${response.error}');
         state = state.copyWith(
           isLoading: false,
           error: response.error ?? 'Failed to load devices',
         );
       }
-    } catch (e) {
+    } catch (e, st) {
+      debugPrint('[Settings] EXCEPTION: $e');
+      debugPrint('[Settings] stacktrace: $st');
       state = state.copyWith(
         isLoading: false,
         error: e.toString(),

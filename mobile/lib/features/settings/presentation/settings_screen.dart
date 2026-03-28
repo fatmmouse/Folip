@@ -1,29 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
 
 import '../../../app/theme.dart';
 import '../../auth/domain/auth_state.dart';
 import '../domain/settings_notifier.dart';
 
-/// Settings screen — pushed onto navigation stack via gear icon.
-///
-/// Sections:
-///   1. "THIS DEVICE" — current device name
-///   2. "MY DEVICES" — all registered devices with remove button
-///   3. "ACCOUNT" — logout
-///
-/// Per UI-SPEC Settings Screen and D-14.
-class SettingsScreen extends ConsumerStatefulWidget {
+/// Settings screen matching Mac app's SettingsView design.
+class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
   @override
-  ConsumerState<SettingsScreen> createState() => _SettingsScreenState();
-}
-
-class _SettingsScreenState extends ConsumerState<SettingsScreen> {
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final settingsState = ref.watch(settingsNotifierProvider);
 
     return Scaffold(
@@ -31,133 +20,156 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       appBar: AppBar(
         backgroundColor: AppColors.dominant,
         elevation: 0,
-        title: Text(
-          'Settings',
-          style: GoogleFonts.sourceSerif4(
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
-            color: AppColors.textPrimary,
-          ),
-        ),
       ),
       body: settingsState.isLoading && settingsState.devices.isEmpty
           ? const Center(
               child: CircularProgressIndicator(color: AppColors.accent),
             )
           : settingsState.error != null && settingsState.devices.isEmpty
-              ? Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        settingsState.error!,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          color: AppColors.destructive,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 8),
-                      TextButton(
-                        onPressed: () => ref
-                            .read(settingsNotifierProvider.notifier)
-                            .loadDevices(),
-                        child: const Text(
-                          'Retry',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.accent,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                )
-              : _buildContent(context, settingsState),
+              ? _buildError(context, ref, settingsState.error!)
+              : _buildContent(context, ref, settingsState),
     );
   }
 
-  Widget _buildContent(BuildContext context, SettingsState settingsState) {
-    final currentDevice = settingsState.devices
-        .where((d) => d.deviceId == settingsState.currentDeviceId)
-        .toList();
+  Widget _buildError(BuildContext context, WidgetRef ref, String error) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(error,
+              style: const TextStyle(fontSize: 14, color: AppColors.destructive),
+              textAlign: TextAlign.center),
+          const SizedBox(height: 8),
+          TextButton(
+            onPressed: () =>
+                ref.read(settingsNotifierProvider.notifier).loadDevices(),
+            child: const Text('Retry',
+                style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.accent)),
+          ),
+        ],
+      ),
+    );
+  }
 
-    return ListView(
-      children: [
-        // ----------------------------------------------------------------
-        // Section 1: This device
-        // ----------------------------------------------------------------
-        _SectionHeader(label: 'THIS DEVICE'),
-        ...currentDevice.map((device) => _DeviceRow(
-              deviceName: device.deviceName,
-              isCurrentDevice: true,
-              onRemove: null,
-            )),
-        if (currentDevice.isEmpty)
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            child: Text(
-              'Unknown device',
-              style: TextStyle(
-                fontSize: 14,
-                color: AppColors.textPrimary,
+  Widget _buildContent(
+      BuildContext context, WidgetRef ref, SettingsState settingsState) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Title — matches Mac "Account"
+          Text(
+            'Account',
+            style: GoogleFonts.sourceSerif4(
+              fontSize: 20,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // Error banner
+          if (settingsState.error != null) ...[
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: AppColors.destructive.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Text(settingsState.error!,
+                  style:
+                      const TextStyle(fontSize: 12, color: AppColors.destructive)),
+            ),
+            const SizedBox(height: 16),
+          ],
+
+          // "Devices" section header
+          Text(
+            'Devices',
+            style: GoogleFonts.sourceSerif4(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 8),
+
+          // Device list
+          Expanded(
+            child: ListView(
+              children: [
+                ...settingsState.devices.map((device) {
+                  final isCurrent =
+                      device.deviceId == settingsState.currentDeviceId;
+                  return _DeviceRow(
+                    deviceName: device.deviceName,
+                    registeredAt: device.registeredAt,
+                    isCurrent: isCurrent,
+                    onRemove: isCurrent
+                        ? null
+                        : () => _confirmRemove(
+                            context, ref, device.deviceId, device.deviceName),
+                  );
+                }),
+                if (settingsState.devices.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: const [
+                        Text('No other devices',
+                            style: TextStyle(
+                                fontSize: 14, color: AppColors.textPrimary)),
+                        SizedBox(height: 2),
+                        Text(
+                            'Log in on another device to start sending files.',
+                            style: TextStyle(
+                                fontSize: 12, color: AppColors.textSecondary)),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+          ),
+
+          // Log Out button at bottom
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: SizedBox(
+                width: double.infinity,
+                height: 44,
+                child: OutlinedButton(
+                  onPressed: () =>
+                      ref.read(authStateProvider.notifier).logout(),
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: AppColors.destructive),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8)),
+                  ),
+                  child: const Text(
+                    'Log Out',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.destructive,
+                    ),
+                  ),
+                ),
               ),
             ),
           ),
-        const _Divider(),
-
-        // ----------------------------------------------------------------
-        // Section 2: My devices
-        // ----------------------------------------------------------------
-        _SectionHeader(label: 'MY DEVICES', topPadding: 24),
-        ...settingsState.devices.map((device) {
-          final isCurrent = device.deviceId == settingsState.currentDeviceId;
-          return Column(
-            children: [
-              _DeviceRow(
-                deviceName: device.deviceName,
-                isCurrentDevice: isCurrent,
-                onRemove: isCurrent
-                    ? null
-                    : () => _confirmRemove(context, device.deviceId,
-                        device.deviceName, settingsState),
-              ),
-              const _Divider(),
-            ],
-          );
-        }),
-
-        // ----------------------------------------------------------------
-        // Section 3: Account
-        // ----------------------------------------------------------------
-        _SectionHeader(label: 'ACCOUNT', topPadding: 24),
-        InkWell(
-          onTap: () {
-            ref.read(authStateProvider.notifier).logout();
-          },
-          child: const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            child: Text(
-              'Log Out',
-              style: TextStyle(
-                fontSize: 14,
-                color: AppColors.destructive,
-              ),
-            ),
-          ),
-        ),
-        const _Divider(),
-      ],
+        ],
+      ),
     );
   }
 
   void _confirmRemove(
-    BuildContext context,
-    String deviceId,
-    String deviceName,
-    SettingsState settingsState,
-  ) {
+      BuildContext context, WidgetRef ref, String deviceId, String deviceName) {
     showModalBottomSheet(
       context: context,
       backgroundColor: AppColors.dominant,
@@ -170,31 +182,23 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(
-              'Remove $deviceName?',
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary,
-              ),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'This device will be signed out.',
-              style: TextStyle(
-                fontSize: 12,
-                color: AppColors.textSecondary,
-              ),
-            ),
+            Text('Remove $deviceName?',
+                style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary)),
+            const SizedBox(height: 4),
+            const Text('This device will need to log in again.',
+                style:
+                    TextStyle(fontSize: 12, color: AppColors.textSecondary)),
             const SizedBox(height: 24),
             SizedBox(
-              height: 48,
+              height: 44,
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.destructive,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
+                      borderRadius: BorderRadius.circular(8)),
                 ),
                 onPressed: () {
                   Navigator.of(context).pop();
@@ -202,34 +206,28 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       .read(settingsNotifierProvider.notifier)
                       .removeDevice(deviceId);
                 },
-                child: const Text(
-                  'Remove',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
+                child: const Text('Remove Device',
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600)),
               ),
             ),
             const SizedBox(height: 8),
             SizedBox(
-              height: 48,
-              child: TextButton(
-                style: TextButton.styleFrom(
+              height: 44,
+              child: OutlinedButton(
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: AppColors.secondary),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
+                      borderRadius: BorderRadius.circular(8)),
                 ),
                 onPressed: () => Navigator.of(context).pop(),
-                child: const Text(
-                  'Cancel',
-                  style: TextStyle(
-                    color: AppColors.textPrimary,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
+                child: const Text('Cancel',
+                    style: TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600)),
               ),
             ),
           ],
@@ -239,104 +237,62 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Private helper widgets
-// ---------------------------------------------------------------------------
-
-class _SectionHeader extends StatelessWidget {
-  final String label;
-  final double topPadding;
-
-  const _SectionHeader({required this.label, this.topPadding = 8});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.fromLTRB(16, topPadding, 16, 8),
-      child: Text(
-        label,
-        style: const TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w400,
-          color: AppColors.textSecondary,
-        ),
-      ),
-    );
-  }
-}
-
+/// Device row — name + registered date + trash icon for removal
 class _DeviceRow extends StatelessWidget {
   final String deviceName;
-  final bool isCurrentDevice;
+  final int? registeredAt;
+  final bool isCurrent;
   final VoidCallback? onRemove;
 
   const _DeviceRow({
     required this.deviceName,
-    required this.isCurrentDevice,
+    this.registeredAt,
+    required this.isCurrent,
     this.onRemove,
   });
+
+  String _formatDate(int? epochMs) {
+    if (epochMs == null) return '';
+    final date = DateTime.fromMillisecondsSinceEpoch(epochMs);
+    return 'Registered ${DateFormat.yMMMd().format(date)}';
+  }
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 48,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: AppColors.secondary, width: 1)),
+      ),
       child: Row(
         children: [
           Expanded(
-            child: Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  deviceName,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-                if (isCurrentDevice) ...[
-                  const SizedBox(width: 6),
-                  const Text(
-                    '(this device)',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                ],
+                Text(deviceName,
+                    style: const TextStyle(
+                        fontSize: 14, color: AppColors.textPrimary)),
+                if (registeredAt != null)
+                  Text(_formatDate(registeredAt),
+                      style: const TextStyle(
+                          fontSize: 12,
+                          color: AppColors.textSecondary,
+                          height: 1.4)),
               ],
             ),
           ),
-          if (!isCurrentDevice && onRemove != null)
-            TextButton(
+          if (!isCurrent && onRemove != null)
+            IconButton(
               onPressed: onRemove,
-              style: TextButton.styleFrom(
-                minimumSize: Size.zero,
-                padding: EdgeInsets.zero,
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              ),
-              child: const Text(
-                'Remove',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: AppColors.destructive,
-                ),
-              ),
+              icon: const Icon(Icons.delete_outline, size: 18),
+              color: AppColors.textSecondary,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+              tooltip: 'Remove device',
             ),
         ],
       ),
-    );
-  }
-}
-
-class _Divider extends StatelessWidget {
-  const _Divider();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Divider(
-      height: 1,
-      thickness: 1,
-      color: AppColors.secondary,
     );
   }
 }
