@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -72,7 +74,16 @@ class DownloadManager extends Notifier<Map<String, DownloadState>> {
     };
 
     try {
-      final dir = await getApplicationDocumentsDirectory();
+      // Save to public Downloads on Android, Documents on iOS
+      Directory dir;
+      if (Platform.isAndroid) {
+        dir = Directory('/storage/emulated/0/Download');
+        if (!await dir.exists()) {
+          dir = await getApplicationDocumentsDirectory();
+        }
+      } else {
+        dir = await getApplicationDocumentsDirectory();
+      }
       final savePath = '${dir.path}/${transfer.fileName}';
       debugPrint('[DownloadManager] savePath: $savePath');
 
