@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../core/storage/secure_storage.dart';
+import '../features/auth/domain/auth_state.dart';
+import '../features/auth/presentation/login_screen.dart';
+import '../features/auth/presentation/register_screen.dart';
 
 // ---------------------------------------------------------------------------
 // Route paths
@@ -21,28 +23,6 @@ class AppRoutes {
 // ---------------------------------------------------------------------------
 // Placeholder screens (replaced in later plans)
 // ---------------------------------------------------------------------------
-
-class _LoginPlaceholder extends StatelessWidget {
-  const _LoginPlaceholder();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(child: Text('Login — coming in Plan 02')),
-    );
-  }
-}
-
-class _RegisterPlaceholder extends StatelessWidget {
-  const _RegisterPlaceholder();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(child: Text('Register — coming in Plan 02')),
-    );
-  }
-}
 
 class _DeviceSetupPlaceholder extends StatelessWidget {
   const _DeviceSetupPlaceholder();
@@ -101,6 +81,27 @@ class _SettingsPlaceholder extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------------------
+// Auth state ChangeNotifier for router refreshListenable
+// ---------------------------------------------------------------------------
+
+/// ChangeNotifier that listens to authStateProvider and notifies
+/// GoRouter to re-evaluate redirect when auth status changes.
+class _AuthChangeNotifier extends ChangeNotifier {
+  _AuthChangeNotifier(this._ref) {
+    _ref.listen<AuthState>(
+      authStateProvider,
+      (previous, next) {
+        if (previous?.status != next.status) {
+          notifyListeners();
+        }
+      },
+    );
+  }
+
+  final Ref _ref;
+}
+
+// ---------------------------------------------------------------------------
 // App shell (bottom tab bar scaffold)
 // ---------------------------------------------------------------------------
 
@@ -152,18 +153,30 @@ class AppShell extends StatelessWidget {
 ///     Branch 1: /send   — second tab
 ///       /settings       — pushed from any screen via gear icon
 final routerProvider = Provider<GoRouter>((ref) {
-  final storage = ref.read(secureStorageProvider);
+  final authChangeNotifier = _AuthChangeNotifier(ref);
 
   return GoRouter(
     initialLocation: AppRoutes.inbox,
-    redirect: (context, state) async {
-      final isAuthenticated = await storage.isAuthenticated();
-      final isOnAuthPage = state.matchedLocation == AppRoutes.login ||
+    refreshListenable: authChangeNotifier,
+    redirect: (context, state) {
+      final authState = ref.read(authStateProvider);
+
+      // Still initializing — don't redirect yet
+      if (authState.status == AuthStatus.unknown) {
+        return null;
+      }
+
+      final isAuthenticated = authState.status == AuthStatus.authenticated;
+      final isOnAuthRoute = state.matchedLocation == AppRoutes.login ||
           state.matchedLocation == AppRoutes.register ||
           state.matchedLocation == AppRoutes.deviceSetup;
 
-      if (!isAuthenticated && !isOnAuthPage) {
+      if (!isAuthenticated && !isOnAuthRoute) {
         return AppRoutes.login;
+      }
+
+      if (isAuthenticated && isOnAuthRoute) {
+        return AppRoutes.inbox;
       }
 
       return null;
@@ -172,11 +185,11 @@ final routerProvider = Provider<GoRouter>((ref) {
       // Unauthenticated routes
       GoRoute(
         path: AppRoutes.login,
-        builder: (context, state) => const _LoginPlaceholder(),
+        builder: (context, state) => const LoginScreen(),
       ),
       GoRoute(
         path: AppRoutes.register,
-        builder: (context, state) => const _RegisterPlaceholder(),
+        builder: (context, state) => const RegisterScreen(),
       ),
       GoRoute(
         path: AppRoutes.deviceSetup,
