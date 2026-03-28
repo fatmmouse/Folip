@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import '../features/auth/domain/auth_state.dart';
 import '../features/auth/presentation/login_screen.dart';
 import '../features/auth/presentation/register_screen.dart';
+import '../features/inbox/presentation/history_screen.dart';
+import '../features/inbox/presentation/inbox_screen.dart';
 import '../features/send/presentation/send_screen.dart';
 import '../features/shell/app_shell.dart';
 
@@ -146,14 +148,12 @@ final routerProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: AppRoutes.inbox,
-                // InboxScreen will be added after Task 2 creates it
-                builder: (context, state) => const _InboxPlaceholderForTask2(),
+                builder: (context, state) => const InboxScreen(),
                 routes: [
                   // /history is pushed from inbox AppBar
                   GoRoute(
                     path: 'history',
-                    builder: (context, state) =>
-                        const _HistoryPlaceholderForTask2(),
+                    builder: (context, state) => const HistoryScreen(),
                   ),
                   // /settings accessible from inbox AppBar gear icon
                   GoRoute(
@@ -187,25 +187,3 @@ final routerProvider = Provider<GoRouter>((ref) {
   );
 });
 
-// Temporary placeholders — replaced in Task 2 with InboxScreen and HistoryScreen
-class _InboxPlaceholderForTask2 extends StatelessWidget {
-  const _InboxPlaceholderForTask2();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(child: Text('Inbox — loading...')),
-    );
-  }
-}
-
-class _HistoryPlaceholderForTask2 extends StatelessWidget {
-  const _HistoryPlaceholderForTask2();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(child: Text('History — loading...')),
-    );
-  }
-}
