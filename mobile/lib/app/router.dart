@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../features/auth/domain/auth_state.dart';
 import '../features/auth/presentation/login_screen.dart';
 import '../features/auth/presentation/register_screen.dart';
+import '../features/shell/app_shell.dart';
 
 // ---------------------------------------------------------------------------
 // Route paths
@@ -31,29 +32,6 @@ class _DeviceSetupPlaceholder extends StatelessWidget {
   Widget build(BuildContext context) {
     return const Scaffold(
       body: Center(child: Text('Device Setup — coming in Plan 02')),
-    );
-  }
-}
-
-class _InboxPlaceholder extends StatelessWidget {
-  const _InboxPlaceholder();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(child: Text('Inbox — coming in Plan 03')),
-    );
-  }
-}
-
-class _HistoryPlaceholder extends StatelessWidget {
-  const _HistoryPlaceholder();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Scaffold(
-      appBar: null,
-      body: Center(child: Text('History — coming in Plan 03')),
     );
   }
 }
@@ -99,42 +77,6 @@ class _AuthChangeNotifier extends ChangeNotifier {
   }
 
   final Ref _ref;
-}
-
-// ---------------------------------------------------------------------------
-// App shell (bottom tab bar scaffold)
-// ---------------------------------------------------------------------------
-
-class AppShell extends StatelessWidget {
-  final StatefulNavigationShell navigationShell;
-
-  const AppShell({super.key, required this.navigationShell});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: navigationShell,
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: navigationShell.currentIndex,
-        onTap: (index) {
-          navigationShell.goBranch(
-            index,
-            initialLocation: index == navigationShell.currentIndex,
-          );
-        },
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.inbox),
-            label: 'Inbox',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.upload),
-            label: 'Send',
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 // ---------------------------------------------------------------------------
@@ -214,12 +156,14 @@ final routerProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: AppRoutes.inbox,
-                builder: (context, state) => const _InboxPlaceholder(),
+                // InboxScreen will be added after Task 2 creates it
+                builder: (context, state) => const _InboxPlaceholderForTask2(),
                 routes: [
                   // /history is pushed from inbox AppBar
                   GoRoute(
                     path: 'history',
-                    builder: (context, state) => const _HistoryPlaceholder(),
+                    builder: (context, state) =>
+                        const _HistoryPlaceholderForTask2(),
                   ),
                   // /settings accessible from inbox AppBar gear icon
                   GoRoute(
@@ -252,3 +196,26 @@ final routerProvider = Provider<GoRouter>((ref) {
     ],
   );
 });
+
+// Temporary placeholders — replaced in Task 2 with InboxScreen and HistoryScreen
+class _InboxPlaceholderForTask2 extends StatelessWidget {
+  const _InboxPlaceholderForTask2();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Scaffold(
+      body: Center(child: Text('Inbox — loading...')),
+    );
+  }
+}
+
+class _HistoryPlaceholderForTask2 extends StatelessWidget {
+  const _HistoryPlaceholderForTask2();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Scaffold(
+      body: Center(child: Text('History — loading...')),
+    );
+  }
+}
