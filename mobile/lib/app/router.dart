@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../features/auth/domain/auth_state.dart';
 import '../features/auth/presentation/login_screen.dart';
 import '../features/auth/presentation/register_screen.dart';
+import '../features/send/presentation/send_screen.dart';
 import '../features/shell/app_shell.dart';
 
 // ---------------------------------------------------------------------------
@@ -32,17 +33,6 @@ class _DeviceSetupPlaceholder extends StatelessWidget {
   Widget build(BuildContext context) {
     return const Scaffold(
       body: Center(child: Text('Device Setup — coming in Plan 02')),
-    );
-  }
-}
-
-class _SendPlaceholder extends StatelessWidget {
-  const _SendPlaceholder();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(child: Text('Send — coming in Plan 04')),
     );
   }
 }
@@ -180,7 +170,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: AppRoutes.send,
-                builder: (context, state) => const _SendPlaceholder(),
+                builder: (context, state) => const SendScreen(),
                 routes: [
                   // /settings accessible from send AppBar gear icon
                   GoRoute(
