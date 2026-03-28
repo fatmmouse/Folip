@@ -6,7 +6,7 @@
   "scripts": {
     "build": "node build.mjs",
     "deploy": "npm run build && s deploy -y",
-    "dev": "npx tsx watch src/index.ts"
+    "dev": "npx tsx watch src/dev.ts"
   },
   "dependencies": {
     "express": "^5.2.1",

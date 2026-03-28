@@ -163,6 +163,7 @@ export default function DropZone({ onFileDrop, uploadStatus, progress, fileName,
       <Upload size={20} color={dragOver ? 'var(--color-accent)' : 'var(--color-text-secondary)'} />
       <span
         style={{
+          fontFamily: 'var(--font-heading)',
           fontSize: '13px',
           color: dragOver ? 'var(--color-accent)' : 'var(--color-text-secondary)',
           transition: 'color 150ms ease',

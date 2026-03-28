@@ -22,9 +22,7 @@ pub async fn login(
         "device_name": device_name,
     });
 
-    let response = api_client.request_public(Method::POST, "/auth/login", Some(body)).await?;
-
-    let data = response.get("data").ok_or("Missing data in login response")?;
+    let data = api_client.request_public(Method::POST, "/auth/login", Some(body)).await?;
 
     // Save tokens and device_id to Keychain
     let access_token = data.get("accessToken")
@@ -66,9 +64,7 @@ pub async fn register(
         "device_name": device_name,
     });
 
-    let response = api_client.request_public(Method::POST, "/auth/register", Some(body)).await?;
-
-    let data = response.get("data").ok_or("Missing data in register response")?;
+    let data = api_client.request_public(Method::POST, "/auth/register", Some(body)).await?;
 
     let access_token = data.get("accessToken")
         .and_then(|v| v.as_str())

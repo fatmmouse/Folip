@@ -80,7 +80,17 @@ pub fn run() {
         .setup(move |app| {
             // D-01: Hide Dock icon — app runs as menu bar utility only
             #[cfg(target_os = "macos")]
-            app.set_activation_policy(tauri::ActivationPolicy::Accessory);
+            {
+                app.set_activation_policy(tauri::ActivationPolicy::Accessory);
+
+                // Make window backgrounds fully transparent (fix corner color artifacts)
+                for label in &["main", "login"] {
+                    if let Some(win) = app.get_webview_window(label) {
+                        use tauri::window::Color;
+                        let _ = win.set_background_color(Some(Color(0, 0, 0, 0)));
+                    }
+                }
+            }
 
             // Check auth state on startup: if no tokens, show login window
             let has_tokens = credentials::get_access_token().is_ok();
@@ -124,18 +134,10 @@ pub fn run() {
 
             Ok(())
         })
-        .on_window_event(move |window, event| {
-            // D-02: Click outside panel to auto-dismiss
-            // Exception: do NOT hide if upload is in progress
-            // Only auto-dismiss the main panel, not the login window
-            if let WindowEvent::Focused(false) = event {
-                if window.label() == "main" {
-                    let state = window.state::<UploadState>();
-                    if !state.is_uploading.load(Ordering::Relaxed) {
-                        let _ = window.hide();
-                    }
-                }
-            }
+        .on_window_event(move |_window, _event| {
+            // Panel visibility is toggled exclusively via tray icon click.
+            // Auto-hide on blur removed: it breaks drag-and-drop from Finder
+            // and causes crashes when native file dialogs steal focus.
         })
         .invoke_handler(tauri::generate_handler![
             show_main_hide_login,

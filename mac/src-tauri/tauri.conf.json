@@ -9,7 +9,7 @@
     "beforeBuildCommand": "npm run build"
   },
   "app": {
-    "macOSPrivateApi": false,
+    "macOSPrivateApi": true,
     "withGlobalTauri": false,
     "windows": [
       {
@@ -22,7 +22,8 @@
         "resizable": false,
         "alwaysOnTop": true,
         "skipTaskbar": true,
-        "focus": false
+        "focus": false,
+        "transparent": true
       },
       {
         "label": "login",
@@ -34,7 +35,8 @@
         "visible": false,
         "resizable": false,
         "center": true,
-        "focus": true
+        "focus": true,
+        "transparent": true
       }
     ]
   }

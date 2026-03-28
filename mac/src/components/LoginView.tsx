@@ -42,8 +42,9 @@ export default function LoginView({ onLogin, onSwitchToRegister, error }: LoginV
     >
       <h1
         style={{
-          fontSize: '15px',
-          fontWeight: 600,
+          fontFamily: 'var(--font-heading)',
+          fontSize: '20px',
+          fontWeight: 700,
           color: 'var(--color-login-text)',
           marginBottom: '32px',
           lineHeight: 1.3,

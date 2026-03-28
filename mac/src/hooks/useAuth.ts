@@ -1,13 +1,23 @@
 import { useState, useEffect, useCallback } from 'react';
+import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
 import * as api from '../lib/api';
 
 export function useAuth() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null); // null = checking
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const recheckAuth = useCallback(() => {
     api.checkAuth().then(setIsAuthenticated).catch(() => setIsAuthenticated(false));
   }, []);
+
+  useEffect(() => {
+    recheckAuth();
+    // Re-check auth when window becomes visible (handles cross-window login)
+    const unlisten = getCurrentWebviewWindow().onFocusChanged(({ payload: focused }) => {
+      if (focused) recheckAuth();
+    });
+    return () => { unlisten.then(fn => fn()); };
+  }, [recheckAuth]);
 
   const login = useCallback(async (email: string, password: string) => {
     setError(null);

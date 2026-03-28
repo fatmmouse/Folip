@@ -145,7 +145,8 @@ impl ApiClient {
             .map_err(|e| format!("Failed to parse response: {e}"))?;
 
         if json.get("ok") == Some(&Value::Bool(true)) {
-            Ok(json)
+            // Return only the "data" field so frontend gets the payload directly
+            Ok(json.get("data").cloned().unwrap_or(json))
         } else {
             let error_msg = json.get("error")
                 .and_then(|v| v.as_str())

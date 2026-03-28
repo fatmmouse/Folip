@@ -76,7 +76,7 @@ export default function InboxView() {
           gap: '4px',
         }}
       >
-        <span style={{ fontSize: '13px', color: 'var(--color-text-primary)' }}>
+        <span style={{ fontFamily: 'var(--font-heading)', fontSize: '14px', color: 'var(--color-text-primary)' }}>
           No files waiting
         </span>
         <span style={{ fontSize: '11px', color: 'var(--color-text-secondary)' }}>
@@ -131,7 +131,8 @@ export default function InboxView() {
               cursor: 'pointer',
               gap: '4px',
               color: 'var(--color-text-secondary)',
-              fontSize: '11px',
+              fontFamily: 'var(--font-heading)',
+              fontSize: '12px',
               lineHeight: 1.4,
             }}
           >

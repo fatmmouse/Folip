@@ -73,7 +73,8 @@ function TabBar({ activeTab, onTabChange, pendingCount }: TabBarProps) {
     border: 'none',
     borderBottom: activeTab === tab ? '2px solid var(--color-accent)' : '2px solid transparent',
     color: activeTab === tab ? 'var(--color-text-primary)' : 'var(--color-text-secondary)',
-    fontSize: '13px',
+    fontFamily: 'var(--font-heading)',
+    fontSize: '14px',
     fontWeight: 600,
     padding: '0 16px',
     height: '100%',
@@ -156,7 +157,6 @@ function MainApp() {
           justifyContent: 'center',
           background: 'var(--color-dominant)',
           borderRadius: '12px',
-          border: '1px solid var(--color-secondary)',
           boxShadow: '0 8px 32px rgba(20, 20, 19, 0.15)',
         }}
       >
@@ -177,7 +177,6 @@ function MainApp() {
           justifyContent: 'center',
           background: 'var(--color-dominant)',
           borderRadius: '12px',
-          border: '1px solid var(--color-secondary)',
           boxShadow: '0 8px 32px rgba(20, 20, 19, 0.15)',
         }}
       >
@@ -199,17 +198,22 @@ function MainApp() {
           flexDirection: 'column',
           background: 'var(--color-dominant)',
           borderRadius: '12px',
-          border: '1px solid var(--color-secondary)',
           boxShadow: '0 8px 32px rgba(20, 20, 19, 0.15)',
           overflow: 'hidden',
         }}
       >
         <TabBar activeTab={activeTab} onTabChange={setActiveTab} pendingCount={pendingCount} />
 
-        <div style={{ flex: 1, overflow: 'hidden' }}>
-          {activeTab === 'send' && <SendView />}
-          {activeTab === 'inbox' && <InboxView />}
-          {activeTab === 'settings' && <SettingsView onLogout={auth.logout} />}
+        <div style={{ flex: 1, overflow: 'hidden', position: 'relative' }}>
+          <div style={{ position: 'absolute', inset: 0, display: activeTab === 'send' ? 'block' : 'none' }}>
+            <SendView />
+          </div>
+          <div style={{ position: 'absolute', inset: 0, display: activeTab === 'inbox' ? 'block' : 'none' }}>
+            <InboxView />
+          </div>
+          <div style={{ position: 'absolute', inset: 0, display: activeTab === 'settings' ? 'block' : 'none' }}>
+            <SettingsView onLogout={auth.logout} />
+          </div>
         </div>
       </div>
     </AppContext.Provider>

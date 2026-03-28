@@ -50,7 +50,7 @@ router.post('/prepare', async (req: Request, res: Response) => {
     // Write transfer metadata to TableStore
     await tsClient.putRow({
       tableName: Tables.TRANSFERS,
-      primaryKey: pk({ target_device_id, transfer_id }),
+      primaryKey: pk({ target_device_id, transfers_id: transfer_id }),
       condition: new TableStore.Condition(TableStore.RowExistenceExpectation.IGNORE, null),
       attributeColumns: attrs({
         sender_device_id,
@@ -89,7 +89,7 @@ router.post('/:transfer_id/confirm', async (req: Request, res: Response) => {
     // Look up the transfer
     const transferLookup = await tsClient.getRow({
       tableName: Tables.TRANSFERS,
-      primaryKey: pk({ target_device_id: target_device_id as string, transfer_id }),
+      primaryKey: pk({ target_device_id: target_device_id as string, transfers_id: transfer_id }),
     })
 
     if (!transferLookup.row || !transferLookup.row.primaryKey || transferLookup.row.primaryKey.length === 0) {
@@ -114,7 +114,7 @@ router.post('/:transfer_id/confirm', async (req: Request, res: Response) => {
     // Update status to pending
     await tsClient.updateRow({
       tableName: Tables.TRANSFERS,
-      primaryKey: pk({ target_device_id: target_device_id as string, transfer_id }),
+      primaryKey: pk({ target_device_id: target_device_id as string, transfers_id: transfer_id }),
       condition: new TableStore.Condition(TableStore.RowExistenceExpectation.EXPECT_EXIST, null),
       updateOfAttributeColumns: [
         { PUT: [{ status: 'pending' }] },
@@ -142,11 +142,11 @@ router.get('/inbox', async (req: Request, res: Response) => {
       direction: TableStore.Direction.FORWARD,
       inclusiveStartPrimaryKey: [
         { target_device_id: deviceId },
-        { transfer_id: TableStore.INF_MIN },
+        { transfers_id: TableStore.INF_MIN },
       ],
       exclusiveEndPrimaryKey: [
         { target_device_id: deviceId },
-        { transfer_id: TableStore.INF_MAX },
+        { transfers_id: TableStore.INF_MAX },
       ],
       limit: 100,
     })
@@ -162,7 +162,7 @@ router.get('/inbox', async (req: Request, res: Response) => {
         const download_url = await generateGetUrl(oss_key, 86400) // 24 hour expiry
 
         transfers.push({
-          transfer_id: getAttr(row, 'transfer_id') ?? row.primaryKey?.find((p: any) => p.name === 'transfer_id')?.value,
+          transfer_id: getAttr(row, 'transfers_id') ?? row.primaryKey?.find((p: any) => p.name === 'transfers_id')?.value,
           file_name: getAttr(row, 'file_name'),
           file_size: getAttr(row, 'file_size'),
           sender_device_id: getAttr(row, 'sender_device_id'),
@@ -192,7 +192,7 @@ router.post('/:transfer_id/downloaded', async (req: Request, res: Response) => {
     // Look up the transfer
     const transferLookup = await tsClient.getRow({
       tableName: Tables.TRANSFERS,
-      primaryKey: pk({ target_device_id: deviceId, transfer_id }),
+      primaryKey: pk({ target_device_id: deviceId, transfers_id: transfer_id }),
     })
 
     if (!transferLookup.row || !transferLookup.row.primaryKey || transferLookup.row.primaryKey.length === 0) {
@@ -203,7 +203,7 @@ router.post('/:transfer_id/downloaded', async (req: Request, res: Response) => {
     // Update status to downloaded (D-01: do NOT delete OSS object)
     await tsClient.updateRow({
       tableName: Tables.TRANSFERS,
-      primaryKey: pk({ target_device_id: deviceId, transfer_id }),
+      primaryKey: pk({ target_device_id: deviceId, transfers_id: transfer_id }),
       condition: new TableStore.Condition(TableStore.RowExistenceExpectation.EXPECT_EXIST, null),
       updateOfAttributeColumns: [
         { PUT: [{ status: 'downloaded' }, { downloaded_at: Date.now() }] },

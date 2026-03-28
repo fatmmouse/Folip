@@ -68,7 +68,8 @@ export default function SettingsView({ onLogout }: SettingsViewProps) {
       {/* Title */}
       <h2
         style={{
-          fontSize: '15px',
+          fontFamily: 'var(--font-heading)',
+          fontSize: '16px',
           fontWeight: 600,
           lineHeight: 1.3,
           color: 'var(--color-text-primary)',
@@ -97,7 +98,8 @@ export default function SettingsView({ onLogout }: SettingsViewProps) {
       <div>
         <h3
           style={{
-            fontSize: '13px',
+            fontFamily: 'var(--font-heading)',
+            fontSize: '14px',
             fontWeight: 600,
             color: 'var(--color-text-primary)',
             margin: '0 0 8px 0',
