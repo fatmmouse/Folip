@@ -149,6 +149,7 @@ pub fn run() {
             commands::auth::check_auth,
             commands::auth::refresh_tokens,
             commands::devices::get_devices,
+            commands::devices::rename_device,
             commands::devices::remove_device,
             commands::transfer::prepare_upload,
             commands::transfer::upload_file,

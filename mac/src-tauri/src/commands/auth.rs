@@ -16,11 +16,17 @@ pub async fn login(
         .map(|h| h.to_string_lossy().to_string())
         .unwrap_or_else(|_| "Mac".to_string());
 
-    let body = json!({
+    // Send existing device_id if available so server reuses it
+    let existing_device_id = credentials::get_device_id().ok();
+
+    let mut body = json!({
         "email": email,
         "password": password,
         "device_name": device_name,
     });
+    if let Some(did) = existing_device_id {
+        body["device_id"] = json!(did);
+    }
 
     let data = api_client.request_public(Method::POST, "/auth/login", Some(body)).await?;
 

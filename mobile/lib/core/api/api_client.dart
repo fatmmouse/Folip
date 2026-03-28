@@ -125,15 +125,20 @@ class ApiClient {
     required String email,
     required String password,
     required String deviceName,
+    String? deviceId,
   }) async {
     try {
+      final body = <String, dynamic>{
+        'email': email,
+        'password': password,
+        'device_name': deviceName,
+      };
+      if (deviceId != null && deviceId.isNotEmpty) {
+        body['device_id'] = deviceId;
+      }
       final response = await _dio.post(
         ApiConstants.login,
-        data: {
-          'email': email,
-          'password': password,
-          'device_name': deviceName,
-        },
+        data: body,
       );
       return ApiResponse.fromJson(
         response.data as Map<String, dynamic>,
@@ -199,6 +204,23 @@ class ApiClient {
       }
     } on DioException catch (e) {
       return _handleDioError<List<Device>>(e);
+    }
+  }
+
+  /// PUT /devices/:id — renames a device.
+  Future<ApiResponse<Map<String, dynamic>>> renameDevice(
+      String deviceId, String deviceName) async {
+    try {
+      final response = await _dio.put(
+        '${ApiConstants.devicesList}/$deviceId',
+        data: {'device_name': deviceName},
+      );
+      return ApiResponse.fromJson(
+        response.data as Map<String, dynamic>,
+        (json) => json,
+      );
+    } on DioException catch (e) {
+      return _handleDioError<Map<String, dynamic>>(e);
     }
   }
 

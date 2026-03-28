@@ -26,6 +26,10 @@ export async function getDevices() {
   return invoke<{ devices: Array<{ device_id: string; device_name: string; registered_at: number }> }>('get_devices');
 }
 
+export async function renameDevice(deviceId: string, deviceName: string) {
+  return invoke<{ device_id: string; device_name: string }>('rename_device', { deviceId, deviceName });
+}
+
 export async function removeDevice(deviceId: string) {
   return invoke<void>('remove_device', { deviceId });
 }

@@ -113,6 +113,8 @@ class SettingsScreen extends ConsumerWidget {
                         ? null
                         : () => _confirmRemove(
                             context, ref, device.deviceId, device.deviceName),
+                    onRename: () => _renameDevice(
+                        context, ref, device.deviceId, device.deviceName),
                   );
                 }),
                 if (settingsState.devices.isEmpty)
@@ -235,6 +237,77 @@ class SettingsScreen extends ConsumerWidget {
       ),
     );
   }
+
+  void _renameDevice(
+      BuildContext context, WidgetRef ref, String deviceId, String currentName) {
+    final controller = TextEditingController(text: currentName);
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.dominant,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (_) => Padding(
+        padding: EdgeInsets.fromLTRB(
+            24, 24, 24, 24 + MediaQuery.of(context).viewInsets.bottom),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Text('Rename Device',
+                style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary)),
+            const SizedBox(height: 12),
+            TextField(
+              controller: controller,
+              autofocus: true,
+              style: const TextStyle(fontSize: 14, color: AppColors.textPrimary),
+              decoration: InputDecoration(
+                filled: true,
+                fillColor: AppColors.secondary.withValues(alpha: 0.3),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide.none,
+                ),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              ),
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              height: 44,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.accent,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8)),
+                ),
+                onPressed: () {
+                  final newName = controller.text.trim();
+                  if (newName.isNotEmpty && newName != currentName) {
+                    Navigator.of(context).pop();
+                    ref
+                        .read(settingsNotifierProvider.notifier)
+                        .renameDevice(deviceId, newName);
+                  } else {
+                    Navigator.of(context).pop();
+                  }
+                },
+                child: const Text('Save',
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 /// Device row — name + registered date + trash icon for removal
@@ -243,12 +316,14 @@ class _DeviceRow extends StatelessWidget {
   final int? registeredAt;
   final bool isCurrent;
   final VoidCallback? onRemove;
+  final VoidCallback? onRename;
 
   const _DeviceRow({
     required this.deviceName,
     this.registeredAt,
     required this.isCurrent,
     this.onRemove,
+    this.onRename,
   });
 
   String _formatDate(int? epochMs) {
@@ -282,6 +357,15 @@ class _DeviceRow extends StatelessWidget {
               ],
             ),
           ),
+          if (onRename != null)
+            IconButton(
+              onPressed: onRename,
+              icon: const Icon(Icons.edit_outlined, size: 18),
+              color: AppColors.textSecondary,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+              tooltip: 'Rename device',
+            ),
           if (!isCurrent && onRemove != null)
             IconButton(
               onPressed: onRemove,

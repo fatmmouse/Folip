@@ -101,7 +101,7 @@ router.post('/register', async (req: Request, res: Response) => {
 // ─── POST /login ─────────────────────────────────────────────────────────────
 router.post('/login', async (req: Request, res: Response) => {
   try {
-    const { email, password, device_name } = req.body
+    const { email, password, device_name, device_id: existing_device_id } = req.body
 
     // Validate inputs
     if (!email || typeof email !== 'string' || !email.trim()) {
@@ -151,16 +151,39 @@ router.post('/login', async (req: Request, res: Response) => {
       return
     }
 
-    // Create new device entry for this login
-    const device_id = uuidv4()
+    // Reuse existing device if client provides a valid device_id
+    let device_id: string
     const now = Date.now()
 
-    await tsClient.putRow({
-      tableName: Tables.DEVICES,
-      primaryKey: pk({ user_id, device_id }),
-      condition: new TableStore.Condition(TableStore.RowExistenceExpectation.IGNORE, null),
-      attributeColumns: attrs({ device_name: device_name.trim(), registered_at: now }),
-    })
+    if (existing_device_id && typeof existing_device_id === 'string') {
+      // Check if this device belongs to this user
+      const deviceLookup = await tsClient.getRow({
+        tableName: Tables.DEVICES,
+        primaryKey: pk({ user_id, device_id: existing_device_id }),
+      })
+      if (deviceLookup.row && deviceLookup.row.primaryKey && deviceLookup.row.primaryKey.length > 0) {
+        // Reuse existing device
+        device_id = existing_device_id
+      } else {
+        // device_id not found for this user — create new
+        device_id = uuidv4()
+        await tsClient.putRow({
+          tableName: Tables.DEVICES,
+          primaryKey: pk({ user_id, device_id }),
+          condition: new TableStore.Condition(TableStore.RowExistenceExpectation.IGNORE, null),
+          attributeColumns: attrs({ device_name: device_name.trim(), registered_at: now }),
+        })
+      }
+    } else {
+      // No existing device_id — create new device
+      device_id = uuidv4()
+      await tsClient.putRow({
+        tableName: Tables.DEVICES,
+        primaryKey: pk({ user_id, device_id }),
+        condition: new TableStore.Condition(TableStore.RowExistenceExpectation.IGNORE, null),
+        attributeColumns: attrs({ device_name: device_name.trim(), registered_at: now }),
+      })
+    }
 
     // Generate tokens
     const tokens = generateTokens(user_id, device_id)

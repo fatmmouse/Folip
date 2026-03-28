@@ -76,6 +76,53 @@ router.get('/', async (req: Request, res: Response) => {
   }
 })
 
+// ─── PUT /:device_id ── Rename a device ─────────────────────────────────────
+router.put('/:device_id', async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.userId
+    const deviceId = req.params.device_id as string
+    const { device_name } = req.body
+
+    if (!device_name || typeof device_name !== 'string' || !device_name.trim()) {
+      res.status(400).json({ error: 'Device name is required', code: 'VALIDATION_ERROR', ok: false })
+      return
+    }
+    if (device_name.trim().length > 50) {
+      res.status(400).json({ error: 'Device name must be 50 characters or less', code: 'VALIDATION_ERROR', ok: false })
+      return
+    }
+
+    // Verify device belongs to this user
+    const lookup = await tsClient.getRow({
+      tableName: Tables.DEVICES,
+      primaryKey: pk({ user_id: userId, device_id: deviceId }),
+    })
+
+    if (!lookup.row || !lookup.row.primaryKey || lookup.row.primaryKey.length === 0) {
+      res.status(404).json({ error: 'Device not found', code: 'DEVICE_NOT_FOUND', ok: false })
+      return
+    }
+
+    // Update device name
+    await tsClient.updateRow({
+      tableName: Tables.DEVICES,
+      primaryKey: pk({ user_id: userId, device_id: deviceId }),
+      condition: new TableStore.Condition(TableStore.RowExistenceExpectation.EXPECT_EXIST, null),
+      updateOfAttributeColumns: [
+        { PUT: attrs({ device_name: device_name.trim() }) },
+      ],
+    })
+
+    res.status(200).json({
+      data: { device_id: deviceId, device_name: device_name.trim() },
+      ok: true,
+    })
+  } catch (err) {
+    console.error('Device rename error:', err)
+    res.status(500).json({ error: 'Internal server error', code: 'INTERNAL_ERROR', ok: false })
+  }
+})
+
 // ─── DELETE /:device_id ── Remove a device and its refresh token ────────────
 router.delete('/:device_id', async (req: Request, res: Response) => {
   try {

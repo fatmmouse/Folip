@@ -57,12 +57,17 @@ class AuthRepository {
   }
 
   /// Authenticates with email/password and persists tokens on success.
+  /// Sends existing device_id if available so server reuses it.
   Future<AuthResult> login(
       String email, String password, String deviceName) async {
+    // Retrieve stored device_id to reuse on re-login
+    final existingDeviceId = await _secureStorage.getDeviceId();
+
     final response = await _apiClient.login(
       email: email,
       password: password,
       deviceName: deviceName,
+      deviceId: existingDeviceId,
     );
 
     if (response.ok && response.data != null) {

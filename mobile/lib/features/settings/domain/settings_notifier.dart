@@ -90,6 +90,25 @@ class SettingsNotifier extends Notifier<SettingsState> {
 
   /// Removes a device from the account.
   ///
+  /// Renames a device and reloads the device list.
+  Future<void> renameDevice(String deviceId, String newName) async {
+    final apiClient = ref.read(apiClientProvider);
+    state = state.copyWith(isLoading: true, error: null);
+    try {
+      final response = await apiClient.renameDevice(deviceId, newName);
+      if (response.ok) {
+        await _loadDevices();
+      } else {
+        state = state.copyWith(
+          isLoading: false,
+          error: response.error ?? 'Failed to rename device',
+        );
+      }
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: e.toString());
+    }
+  }
+
   /// If the removed device is the current device, triggers logout to force
   /// re-authentication on this device.
   Future<void> removeDevice(String deviceId) async {

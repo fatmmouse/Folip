@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Trash2 } from 'lucide-react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { Trash2, Pencil, Check, X } from 'lucide-react';
 import * as api from '../lib/api';
 
 interface Device {
@@ -12,8 +12,10 @@ interface SettingsViewProps {
   onLogout: () => void;
 }
 
-function formatDate(epochSeconds: number): string {
-  const date = new Date(epochSeconds * 1000);
+function formatDate(timestamp: number): string {
+  // Backend stores milliseconds; detect and handle both ms and seconds
+  const ms = timestamp > 1e12 ? timestamp : timestamp * 1000;
+  const date = new Date(ms);
   return date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
 }
 
@@ -131,6 +133,7 @@ export default function SettingsView({ onLogout }: SettingsViewProps) {
                 onRequestRemove={() => setConfirmRemove(device.device_id)}
                 onCancelRemove={() => setConfirmRemove(null)}
                 onConfirmRemove={() => handleRemoveDevice(device.device_id)}
+                onRename={fetchDevices}
               />
             ))}
           </div>
@@ -221,6 +224,7 @@ interface DeviceItemProps {
   onRequestRemove: () => void;
   onCancelRemove: () => void;
   onConfirmRemove: () => void;
+  onRename: () => void;
 }
 
 function DeviceItem({
@@ -229,8 +233,29 @@ function DeviceItem({
   onRequestRemove,
   onCancelRemove,
   onConfirmRemove,
+  onRename,
 }: DeviceItemProps) {
   const [hovered, setHovered] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [editName, setEditName] = useState(device.device_name);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const handleRename = async () => {
+    const trimmed = editName.trim();
+    if (!trimmed || trimmed === device.device_name) {
+      setEditing(false);
+      setEditName(device.device_name);
+      return;
+    }
+    try {
+      await api.renameDevice(device.device_id, trimmed);
+      setEditing(false);
+      onRename();
+    } catch (_e) {
+      setEditName(device.device_name);
+      setEditing(false);
+    }
+  };
 
   if (isConfirming) {
     return (
@@ -293,31 +318,78 @@ function DeviceItem({
       }}
     >
       <div style={{ flex: 1 }}>
-        <div style={{ fontSize: '13px', color: 'var(--color-text-primary)' }}>
-          {device.device_name}
-        </div>
+        {editing ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <input
+              ref={inputRef}
+              value={editName}
+              onChange={(e) => setEditName(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') handleRename(); if (e.key === 'Escape') { setEditing(false); setEditName(device.device_name); } }}
+              autoFocus
+              style={{
+                flex: 1,
+                fontSize: '13px',
+                padding: '2px 4px',
+                border: '1px solid var(--color-secondary)',
+                borderRadius: '4px',
+                background: 'var(--color-bg)',
+                color: 'var(--color-text-primary)',
+                outline: 'none',
+              }}
+            />
+            <button onClick={handleRename} title="Save" style={{ background: 'none', border: 'none', padding: '2px', cursor: 'pointer', color: 'var(--color-accent)', display: 'flex' }}>
+              <Check size={14} />
+            </button>
+            <button onClick={() => { setEditing(false); setEditName(device.device_name); }} title="Cancel" style={{ background: 'none', border: 'none', padding: '2px', cursor: 'pointer', color: 'var(--color-text-secondary)', display: 'flex' }}>
+              <X size={14} />
+            </button>
+          </div>
+        ) : (
+          <div style={{ fontSize: '13px', color: 'var(--color-text-primary)' }}>
+            {device.device_name}
+          </div>
+        )}
         <div style={{ fontSize: '11px', color: 'var(--color-text-secondary)', lineHeight: 1.4 }}>
           Registered {formatDate(device.registered_at)}
         </div>
       </div>
-      {hovered && (
-        <button
-          onClick={onRequestRemove}
-          title="Remove device"
-          style={{
-            background: 'none',
-            border: 'none',
-            padding: '4px',
-            cursor: 'pointer',
-            color: 'var(--color-text-secondary)',
-            display: 'flex',
-            alignItems: 'center',
-          }}
-          onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--color-destructive)'; }}
-          onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--color-text-secondary)'; }}
-        >
-          <Trash2 size={14} />
-        </button>
+      {hovered && !editing && (
+        <div style={{ display: 'flex', gap: '2px' }}>
+          <button
+            onClick={() => { setEditing(true); setEditName(device.device_name); }}
+            title="Rename device"
+            style={{
+              background: 'none',
+              border: 'none',
+              padding: '4px',
+              cursor: 'pointer',
+              color: 'var(--color-text-secondary)',
+              display: 'flex',
+              alignItems: 'center',
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--color-accent)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--color-text-secondary)'; }}
+          >
+            <Pencil size={14} />
+          </button>
+          <button
+            onClick={onRequestRemove}
+            title="Remove device"
+            style={{
+              background: 'none',
+              border: 'none',
+              padding: '4px',
+              cursor: 'pointer',
+              color: 'var(--color-text-secondary)',
+              display: 'flex',
+              alignItems: 'center',
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--color-destructive)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--color-text-secondary)'; }}
+          >
+            <Trash2 size={14} />
+          </button>
+        </div>
       )}
     </div>
   );
