@@ -40,8 +40,7 @@ pub async fn prepare_upload(
         "file_size": file_size,
     });
 
-    let response = api_client.request(Method::POST, "/transfers/prepare", Some(body)).await?;
-    let data = response.get("data").ok_or("Missing data in prepare response")?;
+    let data = api_client.request(Method::POST, "/transfers/prepare", Some(body)).await?;
 
     Ok(json!({
         "transfer_id": data.get("transfer_id"),
@@ -152,6 +151,7 @@ async fn upload_file_inner(
     let client = reqwest::Client::new();
     let put_response = client
         .put(upload_url)
+        .header("Content-Type", "application/octet-stream")
         .header("Content-Length", file_size.to_string())
         .body(body)
         .send()

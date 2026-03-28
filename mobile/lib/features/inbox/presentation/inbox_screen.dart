@@ -56,10 +56,6 @@ class _InboxScreenState extends ConsumerState<InboxScreen>
   Widget build(BuildContext context) {
     final inboxAsync = ref.watch(inboxNotifierProvider);
     final downloads = ref.watch(downloadManagerProvider);
-    final downloadedCount = inboxAsync.value
-            ?.where((t) => t.status == 'downloaded')
-            .length ??
-        0;
 
     return Scaffold(
       backgroundColor: AppColors.dominant,
@@ -67,18 +63,10 @@ class _InboxScreenState extends ConsumerState<InboxScreen>
         backgroundColor: AppColors.dominant,
         elevation: 0,
         leading: IconButton(
-          icon: Badge(
-            isLabelVisible: downloadedCount > 0,
-            label: Text(
-              '$downloadedCount',
-              style: const TextStyle(fontSize: 10, color: Colors.white),
-            ),
-            backgroundColor: AppColors.textSecondary,
-            child: const Icon(
-              Icons.mark_email_read,
-              size: 24,
-              color: AppColors.textSecondary,
-            ),
+          icon: const Icon(
+            Icons.mark_email_read,
+            size: 24,
+            color: AppColors.textSecondary,
           ),
           onPressed: () => context.push('/inbox/history'),
           tooltip: 'Download history',

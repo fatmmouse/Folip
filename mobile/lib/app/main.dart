@@ -5,6 +5,7 @@ import 'router.dart';
 import 'theme.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
   runApp(
     const ProviderScope(
       child: FolipApp(),

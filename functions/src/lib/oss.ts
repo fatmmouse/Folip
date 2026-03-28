@@ -14,7 +14,9 @@ const client = new OSS({
 })
 
 export async function generatePutUrl(objectKey: string, expiresSeconds = 3600): Promise<string> {
-  return await client.signatureUrlV4('PUT', expiresSeconds, { headers: {} }, objectKey)
+  return await client.signatureUrlV4('PUT', expiresSeconds, {
+    headers: { 'Content-Type': 'application/octet-stream' },
+  }, objectKey)
 }
 
 export async function generateGetUrl(objectKey: string, expiresSeconds = 86400): Promise<string> {

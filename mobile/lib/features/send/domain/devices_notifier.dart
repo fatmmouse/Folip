@@ -58,13 +58,21 @@ final selectedDeviceProvider =
 final initSelectedDeviceProvider = FutureProvider<void>((ref) async {
   final storage = ref.read(secureStorageProvider);
   final lastTarget = await storage.getLastTargetDevice();
+  final devices = await ref.watch(devicesProvider.future);
+
+  if (devices.isEmpty) return;
 
   if (lastTarget != null) {
-    // Only pre-select if the device still exists in the list
-    final devices = await ref.watch(devicesProvider.future);
+    // Pre-select last-used device if it still exists
     final stillExists = devices.any((d) => d.deviceId == lastTarget);
     if (stillExists) {
       ref.read(selectedDeviceProvider.notifier).select(lastTarget);
+      return;
     }
+  }
+
+  // Auto-select if only one device available
+  if (devices.length == 1) {
+    ref.read(selectedDeviceProvider.notifier).select(devices.first.deviceId);
   }
 });

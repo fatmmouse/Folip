@@ -1,7 +1,7 @@
-import 'dart:io' show Platform;
-
-import 'package:background_downloader/background_downloader.dart';
+import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:path_provider/path_provider.dart';
 
 import '../../../shared/models/transfer.dart';
 import '../data/inbox_repository.dart';
@@ -33,25 +33,23 @@ class DownloadState {
   }
 }
 
-/// Manages all active and recently completed downloads.
-///
-/// State: Map<transferId, DownloadState> for all active/recent downloads.
-/// Uses background_downloader (FileDownloader) for foreground downloads
-/// with allowPause: true to handle large files (up to 500MB, Android 9-min
-/// timeout avoidance — RESEARCH.md Pitfall 6).
+/// Manages all active and recently completed downloads using Dio.
 class DownloadManager extends Notifier<Map<String, DownloadState>> {
+  final Dio _downloadDio = Dio();
+
   @override
   Map<String, DownloadState> build() {
     return {};
   }
 
-  /// Starts a download for the given transfer.
-  ///
-  /// Uses presigned GET URL from transfer.downloadUrl.
-  /// On Android: saves to applicationDocuments.
-  /// On iOS: saves to applicationDocuments (accessible via Files app, D-07).
+  /// Starts a download for the given transfer using Dio.
   Future<void> startDownload(Transfer transfer) async {
+    debugPrint('[DownloadManager] startDownload: ${transfer.transferId}');
+    debugPrint('[DownloadManager] url: ${transfer.downloadUrl}');
+    debugPrint('[DownloadManager] fileName: ${transfer.fileName}');
+
     if (transfer.downloadUrl == null) {
+      debugPrint('[DownloadManager] ERROR: downloadUrl is null!');
       state = {
         ...state,
         transfer.transferId: DownloadState(
@@ -73,69 +71,66 @@ class DownloadManager extends Notifier<Map<String, DownloadState>> {
       ),
     };
 
-    // Use applicationDocuments on both platforms.
-    // On iOS this is accessible via the Files app (D-07).
-    // Platform.isIOS check kept for future platform-specific directory logic.
-    final baseDirectory = Platform.isIOS
-        ? BaseDirectory.applicationDocuments
-        : BaseDirectory.applicationDocuments;
+    try {
+      final dir = await getApplicationDocumentsDirectory();
+      final savePath = '${dir.path}/${transfer.fileName}';
+      debugPrint('[DownloadManager] savePath: $savePath');
 
-    final task = DownloadTask(
-      url: transfer.downloadUrl!,
-      filename: transfer.fileName,
-      baseDirectory: baseDirectory,
-      updates: Updates.statusAndProgress,
-      allowPause: true, // Required for 500MB files: prevents Android 9-min timeout (Pitfall 6)
-    );
-
-    await FileDownloader().download(
-      task,
-      onProgress: (progress) {
-        state = {
-          ...state,
-          transfer.transferId: DownloadState(
-            transferId: transfer.transferId,
-            progress: progress,
-            status: DownloadStatus.downloading,
-          ),
-        };
-      },
-      onStatus: (status) async {
-        if (status == TaskStatus.complete) {
-          // Best-effort: mark as downloaded on backend
-          try {
-            await ref
-                .read(inboxRepositoryProvider)
-                .markDownloaded(transfer.transferId);
-          } catch (_) {
-            // Ignore backend errors — file is already saved locally
+      await _downloadDio.download(
+        transfer.downloadUrl!,
+        savePath,
+        onReceiveProgress: (received, total) {
+          if (total > 0) {
+            final progress = received / total;
+            state = {
+              ...state,
+              transfer.transferId: DownloadState(
+                transferId: transfer.transferId,
+                progress: progress,
+                status: DownloadStatus.downloading,
+              ),
+            };
           }
-          state = {
-            ...state,
-            transfer.transferId: DownloadState(
-              transferId: transfer.transferId,
-              progress: 1.0,
-              status: DownloadStatus.complete,
-            ),
-          };
-        } else if (status == TaskStatus.failed ||
-            status == TaskStatus.notFound) {
-          state = {
-            ...state,
-            transfer.transferId: DownloadState(
-              transferId: transfer.transferId,
-              progress: 0,
-              status: DownloadStatus.failed,
-            ),
-          };
-        }
-      },
-    );
+        },
+      );
+
+      debugPrint('[DownloadManager] download complete!');
+
+      // Best-effort: mark as downloaded on backend
+      try {
+        await ref
+            .read(inboxRepositoryProvider)
+            .markDownloaded(transfer.transferId);
+      } catch (_) {}
+
+      state = {
+        ...state,
+        transfer.transferId: DownloadState(
+          transferId: transfer.transferId,
+          progress: 1.0,
+          status: DownloadStatus.complete,
+        ),
+      };
+
+      // Auto-clear completed download after 3 seconds
+      Future.delayed(const Duration(seconds: 3), () {
+        clearCompleted(transfer.transferId);
+      });
+    } catch (e) {
+      debugPrint('[DownloadManager] EXCEPTION: $e');
+      state = {
+        ...state,
+        transfer.transferId: DownloadState(
+          transferId: transfer.transferId,
+          progress: 0,
+          status: DownloadStatus.failed,
+        ),
+      };
+    }
   }
 
   /// Retries a failed download.
   Future<void> retryDownload(Transfer transfer) async {
-    // Remove the failed state then restart
     final newState = Map<String, DownloadState>.from(state);
     newState.remove(transfer.transferId);
     state = newState;
