@@ -6,7 +6,7 @@ class ApiConstants {
   // Base URL — override at build time with --dart-define=API_BASE_URL=...
   static const String baseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'http://localhost:3000',
+    defaultValue: 'https://folip-api-ngvinksolj.cn-hangzhou.fcapp.run',
   );
 
   // ---------------------------------------------------------------------------

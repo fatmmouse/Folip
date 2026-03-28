@@ -6,7 +6,7 @@ const KEY_REFRESH_TOKEN: &str = "refresh_token";
 const KEY_DEVICE_ID: &str = "device_id";
 const KEY_API_BASE_URL: &str = "api_base_url";
 
-const DEFAULT_API_BASE_URL: &str = "http://localhost:3000";
+const DEFAULT_API_BASE_URL: &str = "https://folip-api-ngvinksolj.cn-hangzhou.fcapp.run";
 
 fn entry(key: &str) -> Result<Entry, String> {
     Entry::new(SERVICE_NAME, key).map_err(|e| format!("Keychain entry error: {e}"))
