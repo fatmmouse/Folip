@@ -202,7 +202,7 @@ function MainApp() {
           overflow: 'hidden',
         }}
       >
-        <TabBar activeTab={activeTab} onTabChange={setActiveTab} pendingCount={pendingCount} />
+        <TabBar activeTab={activeTab} onTabChange={(tab) => { setActiveTab(tab); window.dispatchEvent(new Event('devices-changed')); }} pendingCount={pendingCount} />
 
         <div style={{ flex: 1, overflow: 'hidden', position: 'relative' }}>
           <div style={{ position: 'absolute', inset: 0, display: activeTab === 'send' ? 'block' : 'none' }}>

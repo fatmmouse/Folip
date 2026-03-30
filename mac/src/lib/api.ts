@@ -21,6 +21,10 @@ export async function refreshTokens() {
   return invoke<void>('refresh_tokens');
 }
 
+export async function getCurrentDeviceId() {
+  return invoke<string | null>('get_current_device_id');
+}
+
 // Device commands
 export async function getDevices() {
   return invoke<{ devices: Array<{ device_id: string; device_name: string; registered_at: number }> }>('get_devices');

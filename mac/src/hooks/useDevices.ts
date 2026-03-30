@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { listen } from '@tauri-apps/api/event';
 import { getDevices } from '../lib/api';
 
 export interface Device {
@@ -39,6 +40,19 @@ export function useDevices() {
 
   useEffect(() => {
     fetchDevices();
+  }, [fetchDevices]);
+
+  // Re-fetch when devices change elsewhere (e.g. rename in Settings tab)
+  useEffect(() => {
+    const handler = () => { fetchDevices(); };
+    window.addEventListener('devices-changed', handler);
+    return () => window.removeEventListener('devices-changed', handler);
+  }, [fetchDevices]);
+
+  // Re-fetch when panel is opened via tray icon click
+  useEffect(() => {
+    const unlisten = listen('panel-opened', () => { fetchDevices(); });
+    return () => { unlisten.then(fn => fn()); };
   }, [fetchDevices]);
 
   const selectDevice = useCallback((deviceId: string) => {

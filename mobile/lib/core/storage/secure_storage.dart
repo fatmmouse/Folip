@@ -99,7 +99,13 @@ class SecureStorageService {
   // ---------------------------------------------------------------------------
 
   Future<void> clearAll() async {
-    await _storage.deleteAll();
+    // Keep device_id so the next login reuses the same device identity
+    await Future.wait([
+      _storage.delete(key: _StorageKeys.accessToken),
+      _storage.delete(key: _StorageKeys.refreshToken),
+      _storage.delete(key: _StorageKeys.userId),
+      _storage.delete(key: _StorageKeys.lastTargetDevice),
+    ]);
   }
 }
 

@@ -104,6 +104,15 @@ pub async fn logout(
     Ok(())
 }
 
+/// Get the current device ID from Keychain.
+#[tauri::command]
+pub async fn get_current_device_id() -> Result<Option<String>, String> {
+    match credentials::get_device_id() {
+        Ok(id) => Ok(Some(id)),
+        Err(_) => Ok(None),
+    }
+}
+
 /// Check if access token exists in Keychain (quick auth state check).
 #[tauri::command]
 pub async fn check_auth() -> Result<bool, String> {

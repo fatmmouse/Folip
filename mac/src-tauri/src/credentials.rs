@@ -47,9 +47,9 @@ pub fn get_device_id() -> Result<String, String> {
 }
 
 pub fn clear_all() -> Result<(), String> {
-    for key in &[KEY_ACCESS_TOKEN, KEY_REFRESH_TOKEN, KEY_DEVICE_ID, KEY_API_BASE_URL] {
+    // Keep device_id so the next login reuses the same device identity
+    for key in &[KEY_ACCESS_TOKEN, KEY_REFRESH_TOKEN] {
         if let Ok(e) = entry(key) {
-            // Ignore NoEntry errors — credential may not exist yet
             let _ = e.delete_credential();
         }
     }

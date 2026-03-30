@@ -4,6 +4,7 @@ import '../../../core/api/api_client.dart';
 import '../../../core/storage/secure_storage.dart';
 import '../../../shared/models/device.dart';
 import '../../auth/domain/auth_state.dart';
+import '../../send/domain/devices_notifier.dart';
 
 // ---------------------------------------------------------------------------
 // Settings state
@@ -98,6 +99,7 @@ class SettingsNotifier extends Notifier<SettingsState> {
       final response = await apiClient.renameDevice(deviceId, newName);
       if (response.ok) {
         await _loadDevices();
+        ref.invalidate(devicesProvider);
       } else {
         state = state.copyWith(
           isLoading: false,
@@ -126,6 +128,7 @@ class SettingsNotifier extends Notifier<SettingsState> {
         } else {
           // Reload device list after successful removal
           await _loadDevices();
+          ref.invalidate(devicesProvider);
         }
       } else {
         state = state.copyWith(

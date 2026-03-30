@@ -1,7 +1,7 @@
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use tauri::{
-    Manager,
+    Emitter, Manager,
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
     WindowEvent,
 };
@@ -126,6 +126,8 @@ pub fn run() {
                                 let _ = window.as_ref().window().move_window(Position::TrayCenter);
                                 let _ = window.show();
                                 let _ = window.set_focus();
+                                // Notify frontend to refresh device list
+                                let _ = app.emit("panel-opened", ());
                             }
                         }
                     }
@@ -147,6 +149,7 @@ pub fn run() {
             commands::auth::register,
             commands::auth::logout,
             commands::auth::check_auth,
+            commands::auth::get_current_device_id,
             commands::auth::refresh_tokens,
             commands::devices::get_devices,
             commands::devices::rename_device,

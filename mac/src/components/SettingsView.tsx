@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { listen } from '@tauri-apps/api/event';
 import { Trash2, Pencil, Check, X } from 'lucide-react';
 import * as api from '../lib/api';
 
@@ -25,11 +26,16 @@ export default function SettingsView({ onLogout }: SettingsViewProps) {
   const [confirmRemove, setConfirmRemove] = useState<string | null>(null);
   const [confirmLogout, setConfirmLogout] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [currentDeviceId, setCurrentDeviceId] = useState<string | null>(null);
 
   const fetchDevices = useCallback(async () => {
     try {
-      const result = await api.getDevices();
+      const [result, deviceId] = await Promise.all([
+        api.getDevices(),
+        api.getCurrentDeviceId(),
+      ]);
       setDevices(result.devices);
+      setCurrentDeviceId(deviceId);
       setError(null);
     } catch (_e) {
       setError('Cannot reach server -- check your internet connection.');
@@ -42,11 +48,25 @@ export default function SettingsView({ onLogout }: SettingsViewProps) {
     fetchDevices();
   }, [fetchDevices]);
 
+  // Re-fetch when tab switches (catches remote renames from other devices)
+  useEffect(() => {
+    const handler = () => { fetchDevices(); };
+    window.addEventListener('devices-changed', handler);
+    return () => window.removeEventListener('devices-changed', handler);
+  }, [fetchDevices]);
+
+  // Re-fetch when panel is opened via tray icon click
+  useEffect(() => {
+    const unlisten = listen('panel-opened', () => { fetchDevices(); });
+    return () => { unlisten.then(fn => fn()); };
+  }, [fetchDevices]);
+
   const handleRemoveDevice = async (deviceId: string) => {
     try {
       await api.removeDevice(deviceId);
       setConfirmRemove(null);
       fetchDevices();
+      window.dispatchEvent(new Event('devices-changed'));
     } catch (_e) {
       setError('Failed to remove device.');
     }
@@ -129,6 +149,7 @@ export default function SettingsView({ onLogout }: SettingsViewProps) {
               <DeviceItem
                 key={device.device_id}
                 device={device}
+                isCurrent={device.device_id === currentDeviceId}
                 isConfirming={confirmRemove === device.device_id}
                 onRequestRemove={() => setConfirmRemove(device.device_id)}
                 onCancelRemove={() => setConfirmRemove(null)}
@@ -220,6 +241,7 @@ export default function SettingsView({ onLogout }: SettingsViewProps) {
 
 interface DeviceItemProps {
   device: Device;
+  isCurrent: boolean;
   isConfirming: boolean;
   onRequestRemove: () => void;
   onCancelRemove: () => void;
@@ -229,6 +251,7 @@ interface DeviceItemProps {
 
 function DeviceItem({
   device,
+  isCurrent,
   isConfirming,
   onRequestRemove,
   onCancelRemove,
@@ -251,6 +274,7 @@ function DeviceItem({
       await api.renameDevice(device.device_id, trimmed);
       setEditing(false);
       onRename();
+      window.dispatchEvent(new Event('devices-changed'));
     } catch (_e) {
       setEditName(device.device_name);
       setEditing(false);
@@ -345,8 +369,11 @@ function DeviceItem({
             </button>
           </div>
         ) : (
-          <div style={{ fontSize: '13px', color: 'var(--color-text-primary)' }}>
+          <div style={{ fontSize: '13px', color: 'var(--color-text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
             {device.device_name}
+            {isCurrent && (
+              <span style={{ fontSize: '10px', color: 'var(--color-accent)', fontWeight: 600 }}>This device</span>
+            )}
           </div>
         )}
         <div style={{ fontSize: '11px', color: 'var(--color-text-secondary)', lineHeight: 1.4 }}>
@@ -372,7 +399,7 @@ function DeviceItem({
           >
             <Pencil size={14} />
           </button>
-          <button
+          {!isCurrent && <button
             onClick={onRequestRemove}
             title="Remove device"
             style={{
@@ -388,7 +415,7 @@ function DeviceItem({
             onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--color-text-secondary)'; }}
           >
             <Trash2 size={14} />
-          </button>
+          </button>}
         </div>
       )}
     </div>
