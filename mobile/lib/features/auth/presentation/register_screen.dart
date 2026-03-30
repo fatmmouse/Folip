@@ -1,3 +1,5 @@
+import 'dart:io' show Platform;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -25,7 +27,6 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
-  final _deviceNameController = TextEditingController(text: 'My Phone');
 
   String? _validationError;
 
@@ -34,7 +35,6 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
-    _deviceNameController.dispose();
     super.dispose();
   }
 
@@ -66,12 +66,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
     setState(() => _validationError = null);
 
+    final deviceName = Platform.localHostname;
     await ref.read(authStateProvider.notifier).register(
           _emailController.text.trim(),
           _passwordController.text,
-          _deviceNameController.text.trim().isNotEmpty
-              ? _deviceNameController.text.trim()
-              : 'My Phone',
+          deviceName.isNotEmpty ? deviceName : 'My Phone',
         );
   }
 
@@ -145,23 +144,6 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     ),
                   ),
                 ],
-
-                const SizedBox(height: AppSpacing.md),
-
-                // Device name label + field
-                Text(
-                  'Device name',
-                  style: GoogleFonts.inter(
-                    fontSize: 12,
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.xs),
-                _AuthTextField(
-                  controller: _deviceNameController,
-                  hintText: 'My Phone',
-                  onChanged: (_) => setState(() {}),
-                ),
 
                 const SizedBox(height: AppSpacing.md),
 
