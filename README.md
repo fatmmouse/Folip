@@ -53,9 +53,8 @@ Folip/
 │   └── src-tauri/    # Rust backend + Tauri commands
 ├── mobile/           # Flutter Android app
 │   └── lib/          # Dart source (Riverpod, Dio)
-├── functions/        # Serverless backend (Node.js / TypeScript)
-│   └── src/          # API routes, auth, OSS integration
-└── .planning/        # Development planning artifacts
+└── functions/        # Serverless backend (Node.js / TypeScript)
+    └── src/          # API routes, auth, OSS integration
 ```
 
 ## Tech Stack

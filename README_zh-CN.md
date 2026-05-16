@@ -52,9 +52,8 @@ Folip/
 │   └── src-tauri/    # Rust 后端 + Tauri 命令
 ├── mobile/           # Flutter Android 应用
 │   └── lib/          # Dart 源码 (Riverpod, Dio)
-├── functions/        # Serverless 后端 (Node.js / TypeScript)
-│   └── src/          # API 路由、认证、OSS 集成
-└── .planning/        # 开发规划文档
+└── functions/        # Serverless 后端 (Node.js / TypeScript)
+    └── src/          # API 路由、认证、OSS 集成
 ```
 
 ## 技术栈
