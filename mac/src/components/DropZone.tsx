@@ -6,14 +6,24 @@ import type { UploadStatus } from '../hooks/useUpload';
 import ProgressBar from './ProgressBar';
 
 interface DropZoneProps {
-  onFileDrop: (filePath: string) => void;
+  onFilesDrop: (filePaths: string[]) => void;
   uploadStatus: UploadStatus;
   progress: number;
   fileName: string | null;
   error: string | null;
+  currentIndex: number;
+  totalFiles: number;
 }
 
-export default function DropZone({ onFileDrop, uploadStatus, progress, fileName, error }: DropZoneProps) {
+export default function DropZone({
+  onFilesDrop,
+  uploadStatus,
+  progress,
+  fileName,
+  error,
+  currentIndex,
+  totalFiles,
+}: DropZoneProps) {
   const [dragOver, setDragOver] = useState(false);
 
   // Set up Tauri drag-drop event listener
@@ -29,7 +39,7 @@ export default function DropZone({ onFileDrop, uploadStatus, progress, fileName,
         setDragOver(false);
         const paths = event.payload.paths;
         if (paths && paths.length > 0) {
-          onFileDrop(paths[0]);
+          onFilesDrop(paths);
         }
       }
     }).then((fn) => {
@@ -39,15 +49,17 @@ export default function DropZone({ onFileDrop, uploadStatus, progress, fileName,
     return () => {
       if (unlisten) unlisten();
     };
-  }, [onFileDrop]);
+  }, [onFilesDrop]);
 
   // Click to select file
   const handleClick = async () => {
     if (uploadStatus === 'uploading' || uploadStatus === 'complete') return;
     try {
-      const filePath = await open({ multiple: false });
-      if (typeof filePath === 'string') {
-        onFileDrop(filePath);
+      const selection = await open({ multiple: true });
+      if (Array.isArray(selection) && selection.length > 0) {
+        onFilesDrop(selection);
+      } else if (typeof selection === 'string') {
+        onFilesDrop([selection]);
       }
     } catch {
       // User cancelled or dialog error — ignore
@@ -56,6 +68,7 @@ export default function DropZone({ onFileDrop, uploadStatus, progress, fileName,
 
   // --- Uploading state ---
   if (uploadStatus === 'uploading') {
+    const showCounter = totalFiles > 1;
     return (
       <div
         style={{
@@ -68,18 +81,40 @@ export default function DropZone({ onFileDrop, uploadStatus, progress, fileName,
           padding: '16px',
         }}
       >
-        <span
+        <div
           style={{
-            fontSize: '13px',
-            color: 'var(--color-text-primary)',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'baseline',
             marginBottom: '8px',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
+            gap: '8px',
           }}
         >
-          {fileName}
-        </span>
+          <span
+            style={{
+              fontSize: '13px',
+              color: 'var(--color-text-primary)',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+              flex: 1,
+              minWidth: 0,
+            }}
+          >
+            {fileName}
+          </span>
+          {showCounter && (
+            <span
+              style={{
+                fontSize: '11px',
+                color: 'var(--color-text-secondary)',
+                flexShrink: 0,
+              }}
+            >
+              {currentIndex}/{totalFiles}
+            </span>
+          )}
+        </div>
         <ProgressBar progress={progress} />
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '4px' }}>
           <span style={{ fontSize: '10px', color: 'var(--color-text-secondary)', lineHeight: 1.4 }}>
@@ -92,6 +127,7 @@ export default function DropZone({ onFileDrop, uploadStatus, progress, fileName,
 
   // --- Complete state ---
   if (uploadStatus === 'complete') {
+    const showCounter = totalFiles > 1;
     return (
       <div
         style={{
@@ -108,7 +144,7 @@ export default function DropZone({ onFileDrop, uploadStatus, progress, fileName,
       >
         <CheckCircle size={24} color="var(--color-success)" />
         <span style={{ fontSize: '13px', color: 'var(--color-success)', fontWeight: 600 }}>
-          Sent
+          {showCounter ? `Sent ${totalFiles} files` : 'Sent'}
         </span>
       </div>
     );
@@ -169,7 +205,7 @@ export default function DropZone({ onFileDrop, uploadStatus, progress, fileName,
           transition: 'color 150ms ease',
         }}
       >
-        {dragOver ? 'Drop to send' : 'Drag file here or click to select'}
+        {dragOver ? 'Drop to send' : 'Drag files here or click to select'}
       </span>
     </div>
   );

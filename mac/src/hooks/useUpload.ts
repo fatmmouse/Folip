@@ -4,11 +4,18 @@ import { prepareUpload, uploadFile } from '../lib/api';
 
 export type UploadStatus = 'idle' | 'uploading' | 'complete' | 'error';
 
+function basename(filePath: string): string {
+  const parts = filePath.split(/[/\\]/);
+  return parts[parts.length - 1] || filePath;
+}
+
 export function useUpload() {
   const [status, setStatus] = useState<UploadStatus>('idle');
   const [progress, setProgress] = useState(0);
   const [fileName, setFileName] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [totalFiles, setTotalFiles] = useState(0);
   const unlistenRef = useRef<UnlistenFn | null>(null);
   const resetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -23,19 +30,17 @@ export function useUpload() {
     }
   }, []);
 
-  const startUpload = useCallback(async (filePath: string, targetDeviceId: string) => {
+  const startUpload = useCallback(async (filePaths: string[], targetDeviceId: string) => {
+    if (filePaths.length === 0) return;
+
     cleanup();
 
-    // Extract file name from path
-    const parts = filePath.split(/[/\\]/);
-    const name = parts[parts.length - 1] || filePath;
-    setFileName(name);
     setStatus('uploading');
-    setProgress(0);
     setError(null);
+    setTotalFiles(filePaths.length);
 
     try {
-      // Listen for progress events from Rust
+      // One progress listener for the whole batch — Rust re-emits per upload.
       unlistenRef.current = await listen<{ percent: number }>('upload-progress', (event) => {
         const percent = typeof event.payload === 'number'
           ? event.payload
@@ -43,23 +48,27 @@ export function useUpload() {
         setProgress(Math.min(100, Math.max(0, percent)));
       });
 
-      // Prepare upload (get presigned URL)
-      const { transfer_id, upload_url } = await prepareUpload(filePath, targetDeviceId);
+      for (let i = 0; i < filePaths.length; i++) {
+        const filePath = filePaths[i];
+        setCurrentIndex(i + 1);
+        setFileName(basename(filePath));
+        setProgress(0);
 
-      // Upload file
-      await uploadFile(filePath, upload_url, transfer_id, targetDeviceId);
+        const { transfer_id, upload_url } = await prepareUpload(filePath, targetDeviceId);
+        await uploadFile(filePath, upload_url, transfer_id, targetDeviceId);
+      }
 
-      // Success
       setStatus('complete');
       setProgress(100);
 
-      // Auto-reset to idle after 2 seconds
       resetTimerRef.current = setTimeout(() => {
         setStatus('idle');
         setProgress(0);
         setFileName(null);
         setError(null);
-      }, 2000);
+        setCurrentIndex(0);
+        setTotalFiles(0);
+      }, 900);
     } catch (err) {
       setStatus('error');
       setError('Upload failed -- check your connection and try again.');
@@ -77,6 +86,8 @@ export function useUpload() {
     setProgress(0);
     setFileName(null);
     setError(null);
+    setCurrentIndex(0);
+    setTotalFiles(0);
   }, [cleanup]);
 
   return {
@@ -84,6 +95,8 @@ export function useUpload() {
     progress,
     fileName,
     error,
+    currentIndex,
+    totalFiles,
     startUpload,
     reset,
   };

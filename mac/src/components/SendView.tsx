@@ -11,14 +11,14 @@ export default function SendView() {
 
   const isUploading = upload.status === 'uploading';
 
-  const handleFileDrop = useCallback(
-    (filePath: string) => {
+  const handleFilesDrop = useCallback(
+    (filePaths: string[]) => {
       if (!selectedDeviceId) {
         setNoDeviceError(true);
         return;
       }
       setNoDeviceError(false);
-      upload.startUpload(filePath, selectedDeviceId);
+      upload.startUpload(filePaths, selectedDeviceId);
     },
     [selectedDeviceId, upload],
   );
@@ -50,11 +50,13 @@ export default function SendView() {
 
       {/* Drop zone */}
       <DropZone
-        onFileDrop={handleFileDrop}
+        onFilesDrop={handleFilesDrop}
         uploadStatus={upload.status}
         progress={upload.progress}
         fileName={upload.fileName}
         error={upload.error}
+        currentIndex={upload.currentIndex}
+        totalFiles={upload.totalFiles}
       />
     </div>
   );
