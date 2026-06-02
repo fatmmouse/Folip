@@ -2,6 +2,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use tauri::{
     Emitter, Manager,
+    menu::{Menu, MenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
     WindowEvent,
 };
@@ -101,11 +102,21 @@ pub fn run() {
                 }
             }
 
+            // Right-click menu with a Quit item (left-click still toggles the panel)
+            let quit_i = MenuItem::with_id(app, "quit", "Quit Folip", true, None::<&str>)?;
+            let tray_menu = Menu::with_items(app, &[&quit_i])?;
+
             // Create tray icon in synchronous .setup() context
             // CRITICAL: Do NOT create TrayIcon in async context (Pitfall 2)
             let _tray = TrayIconBuilder::with_id("main")
                 .icon(app.default_window_icon().unwrap().clone())
-                .show_menu_on_left_click(false) // CRITICAL: macOS bug workaround (Pitfall 1)
+                .menu(&tray_menu)
+                .show_menu_on_left_click(false) // CRITICAL: macOS bug workaround (Pitfall 1); right-click opens the menu
+                .on_menu_event(|app, event| {
+                    if event.id.as_ref() == "quit" {
+                        app.exit(0);
+                    }
+                })
                 .on_tray_icon_event(|tray_handle, event| {
                     // Pass event to positioner plugin first
                     tauri_plugin_positioner::on_tray_event(tray_handle.app_handle(), &event);
